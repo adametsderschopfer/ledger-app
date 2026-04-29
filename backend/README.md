@@ -64,7 +64,12 @@ If the default admin already exists, startup keeps the existing account credenti
 `auth-service`:
 
 - `PORT` - HTTP port, default `8081`.
-- `DATABASE_URL` - PostgreSQL connection string, default `postgres://ledger:ledger@localhost:5433/ledger?sslmode=disable`.
+- `DATABASE_URL` - optional PostgreSQL connection string override.
+- `POSTGRES_HOST` - PostgreSQL host used when `DATABASE_URL` is unset, default `localhost`.
+- `POSTGRES_PORT` - PostgreSQL port used when `DATABASE_URL` is unset, default `5433`.
+- `POSTGRES_DB` - PostgreSQL database used when `DATABASE_URL` is unset, default `ledger`.
+- `POSTGRES_USER` - PostgreSQL user used when `DATABASE_URL` is unset, default `ledger`.
+- `POSTGRES_PASSWORD` - PostgreSQL password used when `DATABASE_URL` is unset, default `ledger`.
 - `APP_LANGUAGE` - language used when seeding default categories for new users, default `RU`. Supported values: `RU`, `EN`.
 - `DEFAULT_ADMIN_NAME` - initial admin display name.
 - `DEFAULT_ADMIN_EMAIL` - initial admin email.
@@ -73,7 +78,12 @@ If the default admin already exists, startup keeps the existing account credenti
 `ledger-service`:
 
 - `PORT` - HTTP port, default `8082`.
-- `DATABASE_URL` - PostgreSQL connection string, default `postgres://ledger:ledger@localhost:5433/ledger?sslmode=disable`.
+- `DATABASE_URL` - optional PostgreSQL connection string override.
+- `POSTGRES_HOST` - PostgreSQL host used when `DATABASE_URL` is unset, default `localhost`.
+- `POSTGRES_PORT` - PostgreSQL port used when `DATABASE_URL` is unset, default `5433`.
+- `POSTGRES_DB` - PostgreSQL database used when `DATABASE_URL` is unset, default `ledger`.
+- `POSTGRES_USER` - PostgreSQL user used when `DATABASE_URL` is unset, default `ledger`.
+- `POSTGRES_PASSWORD` - PostgreSQL password used when `DATABASE_URL` is unset, default `ledger`.
 - `AUTH_SERVICE_URL` - auth service URL, default `http://localhost:8081`.
 
 ## Development

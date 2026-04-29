@@ -41,7 +41,12 @@ services:
     restart: unless-stopped
     environment:
       PORT: "8081"
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_SSLMODE: disable
       APP_LANGUAGE: ${APP_LANGUAGE:-RU}
       DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:?Set DEFAULT_ADMIN_NAME in .env}
       DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:?Set DEFAULT_ADMIN_EMAIL in .env}
@@ -60,7 +65,12 @@ services:
     restart: unless-stopped
     environment:
       PORT: "8082"
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_SSLMODE: disable
       AUTH_SERVICE_URL: http://auth-service:8081
     depends_on:
       auth-service:

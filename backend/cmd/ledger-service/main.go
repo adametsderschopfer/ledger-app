@@ -14,7 +14,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	db, err := platform.OpenPostgres(ctx, platform.Env("DATABASE_URL", "postgres://ledger:ledger@localhost:5433/ledger?sslmode=disable"))
+	db, err := platform.OpenPostgres(ctx, platform.PostgresURL())
 	if err != nil {
 		log.Fatalf("connect postgres: %v", err)
 	}

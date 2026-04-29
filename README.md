@@ -62,6 +62,8 @@ The default admin account is created from `.env`:
 
 If the default admin already exists in the database, startup keeps the existing account credentials and only ensures its default categories exist.
 
+Docker Compose builds backend database connection settings from `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`; keep those values in sync with the PostgreSQL service and do not add a separate `DATABASE_URL` unless you intentionally override the generated connection string.
+
 ## Development
 
 Frontend:
