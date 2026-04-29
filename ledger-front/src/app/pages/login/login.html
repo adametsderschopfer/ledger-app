@@ -1,0 +1,34 @@
+<main class="login-page">
+  <mat-card appearance="outlined" class="login-card">
+    <mat-card-header>
+      <mat-card-title>Ledger</mat-card-title>
+      <mat-card-subtitle>Вход в учет финансов</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" class="login-form" (ngSubmit)="submit()">
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" type="email" autocomplete="username" />
+          <mat-icon matPrefix>mail</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Пароль</mat-label>
+          <input matInput formControlName="password" type="password" autocomplete="current-password" />
+          <mat-icon matPrefix>lock</mat-icon>
+        </mat-form-field>
+
+        @if (loginFailed()) {
+          <p class="form-error">Пользователь не найден или пароль слишком короткий.</p>
+        }
+
+        <button mat-flat-button type="submit">Войти</button>
+      </form>
+    </mat-card-content>
+
+    <mat-card-footer>
+      <span>Мок: admin@ledger.local / admin</span>
+    </mat-card-footer>
+  </mat-card>
+</main>

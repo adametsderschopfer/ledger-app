@@ -1,0 +1,88 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Журнал</p>
+    <h1>Все операции</h1>
+  </div>
+  <button mat-flat-button type="button" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    Добавить операцию
+  </button>
+</section>
+
+<section class="filters" aria-label="Фильтры операций">
+  <mat-form-field appearance="outline">
+    <mat-label>Поиск</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input
+      #searchInput
+      matInput
+      type="search"
+      autocomplete="off"
+      [value]="searchQuery()"
+      (input)="setSearchQuery(searchInput.value)"
+    />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Тип</mat-label>
+    <mat-select [value]="typeFilter()" (selectionChange)="setTypeFilter($event)">
+      <mat-option value="all">Все типы</mat-option>
+      <mat-option value="income">Доходы</mat-option>
+      <mat-option value="expense">Расходы</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Категория</mat-label>
+    <mat-select [value]="categoryFilter()" (selectionChange)="setCategoryFilter($event)">
+      <mat-option value="all">Все категории</mat-option>
+      @for (category of filterCategories(); track category.id) {
+        <mat-option [value]="category.id">{{ category.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>С даты</mat-label>
+    <input
+      #startDateInput
+      matInput
+      type="date"
+      [value]="startDate()"
+      (input)="setStartDate(startDateInput.value)"
+    />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>По дату</mat-label>
+    <input #endDateInput matInput type="date" [value]="endDate()" (input)="setEndDate(endDateInput.value)" />
+  </mat-form-field>
+
+  <button mat-stroked-button type="button" [disabled]="activeFilterCount() === 0" (click)="clearFilters()">
+    <mat-icon>filter_alt_off</mat-icon>
+    Сбросить
+  </button>
+</section>
+
+<section class="results-summary" aria-live="polite">
+  <span>Показано {{ visibleTransactions().length }} из {{ filteredTransactions().length }}</span>
+  @if (activeFilterCount() > 0) {
+    <span>{{ activeFilterCount() }} фильтр(ов)</span>
+  }
+</section>
+
+<app-transaction-groups
+  [groups]="visibleGroups()"
+  emptyText="Операции по выбранным фильтрам не найдены."
+/>
+
+@if (hasMore()) {
+  <div #loadMoreAnchor class="load-more">
+    <button mat-stroked-button type="button" (click)="loadMore()">
+      <mat-icon>expand_more</mat-icon>
+      Показать еще
+    </button>
+  </div>
+} @else if (filteredTransactions().length > 0) {
+  <p class="list-end">Показаны все операции.</p>
+}

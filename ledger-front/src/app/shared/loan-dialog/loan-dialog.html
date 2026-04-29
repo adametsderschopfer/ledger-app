@@ -1,0 +1,27 @@
+<h2 mat-dialog-title>Добавить кредит</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-grid">
+    <mat-form-field appearance="outline" class="wide-field">
+      <mat-label>Название</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Сумма кредита</mat-label>
+      <input matInput type="number" min="1" formControlName="originalAmount" inputmode="decimal" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Ежемесячный платеж</mat-label>
+      <input matInput type="number" min="1" formControlName="monthlyPayment" inputmode="decimal" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>День платежа</mat-label>
+      <input matInput type="number" min="1" max="31" formControlName="dueDay" inputmode="numeric" />
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">Отмена</button>
+  <button mat-flat-button type="button" (click)="save()">Добавить</button>
+</mat-dialog-actions>

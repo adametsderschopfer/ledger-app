@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>Добавить категорию</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-grid">
+    <mat-form-field appearance="outline" class="wide-field">
+      <mat-label>Название</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Тип</mat-label>
+      <mat-select formControlName="type">
+        <mat-option value="expense">Расход</mat-option>
+        <mat-option value="income">Доход</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Цвет</mat-label>
+      <input matInput formControlName="color" type="color" aria-label="Цвет категории" />
+    </mat-form-field>
+
+    @if (form.controls.type.value === 'expense') {
+      <mat-checkbox formControlName="linksToLoan" class="credit-checkbox">
+        Учет по кредитам
+      </mat-checkbox>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">Отмена</button>
+  <button mat-flat-button type="button" (click)="save()">Добавить</button>
+</mat-dialog-actions>

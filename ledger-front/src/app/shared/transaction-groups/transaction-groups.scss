@@ -1,0 +1,131 @@
+.groups {
+  display: grid;
+  gap: 10px;
+}
+
+.day-group {
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 10px;
+  box-shadow: var(--ledger-surface-shadow);
+}
+
+.day-header,
+.transaction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.day-header {
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 5%, var(--mat-sys-surface));
+}
+
+.day-header div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.day-header span,
+.transaction-main span {
+  color: var(--ledger-muted);
+  font-size: 0.82rem;
+}
+
+.day-totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.transaction-list {
+  display: grid;
+}
+
+.transaction-row {
+  padding: 9px 14px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.transaction-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--ledger-google-red);
+  background: color-mix(in srgb, var(--ledger-google-red) 12%, var(--mat-sys-surface));
+  border-radius: 8px;
+}
+
+.transaction-icon mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.income-icon {
+  color: var(--ledger-google-green);
+  background: color-mix(in srgb, var(--ledger-google-green) 12%, var(--mat-sys-surface));
+}
+
+.transaction-main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.transaction-row > strong:last-child {
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.transaction-main strong,
+.transaction-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.income {
+  color: var(--ledger-google-green);
+}
+
+.expense {
+  color: var(--ledger-google-red);
+}
+
+.empty-state {
+  padding: 28px;
+  color: var(--ledger-muted);
+  text-align: center;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: 12px;
+}
+
+@media (max-width: 640px) {
+  .day-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .day-totals {
+    justify-content: flex-start;
+  }
+
+  .transaction-row {
+    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+  }
+
+  .transaction-row > strong:last-child {
+    grid-column: 2;
+  }
+}

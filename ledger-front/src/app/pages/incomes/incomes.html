@@ -1,0 +1,15 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Поступления</p>
+    <h1>Доходы</h1>
+  </div>
+  <button mat-flat-button type="button" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    Добавить доход
+  </button>
+</section>
+
+<app-transaction-groups
+  [groups]="ledger.incomeTransactionGroups()"
+  emptyText="Доходов пока нет."
+/>

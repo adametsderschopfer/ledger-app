@@ -1,0 +1,36 @@
+<h2 mat-dialog-title>Добавить пользователя</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Имя</mat-label>
+      <input matInput formControlName="name" autocomplete="name" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Email</mat-label>
+      <input matInput formControlName="email" type="email" autocomplete="email" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Пароль</mat-label>
+      <input matInput formControlName="password" type="password" autocomplete="new-password" />
+      @if (form.controls.password.hasError('minlength')) {
+        <mat-error>Минимум 4 символа</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Роль</mat-label>
+      <mat-select formControlName="role">
+        <mat-option value="user">Пользователь</mat-option>
+        <mat-option value="admin">Админ</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">Отмена</button>
+  <button mat-flat-button type="button" (click)="save()">Добавить</button>
+</mat-dialog-actions>

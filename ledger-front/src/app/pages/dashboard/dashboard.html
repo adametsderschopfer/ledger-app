@@ -1,0 +1,136 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Текущий месяц</p>
+    <h1>Финансовая сводка</h1>
+  </div>
+  <button mat-flat-button type="button" (click)="openDailyExpenses()">
+    <mat-icon>receipt_long</mat-icon>
+    Расходы за сегодня
+  </button>
+</section>
+
+<section class="metrics" aria-label="Основные показатели">
+  <article class="metric">
+    <span>Доходы</span>
+    <strong>{{ ledger.money(ledger.monthlyIncome()) }}</strong>
+    <small>Поступления за месяц</small>
+  </article>
+  <article class="metric">
+    <span>Расходы</span>
+    <strong>{{ ledger.money(ledger.monthlyExpense()) }}</strong>
+    <small>С учетом кредитных платежей</small>
+  </article>
+  <article class="metric">
+    <span>Баланс</span>
+    <strong>{{ ledger.money(ledger.monthlyBalance()) }}</strong>
+    <small>Доходы минус расходы</small>
+  </article>
+  <article class="metric">
+    <span>Остаток кредитов</span>
+    <strong>{{ ledger.money(ledger.totalLoanDebt()) }}</strong>
+    <small>Обновляется из расходов</small>
+  </article>
+</section>
+
+<section class="dashboard-grid">
+  <div class="surface">
+    <div class="section-title">
+      <h2>Расходы по категориям</h2>
+      <span>{{ ledger.expenseBreakdown().length }} категорий</span>
+    </div>
+
+    <div class="breakdown-list">
+      @for (item of ledger.expenseBreakdown(); track item.category.id) {
+        <div class="breakdown-item">
+          <div class="breakdown-line">
+            <span class="category-dot" [style.background]="item.category.color"></span>
+            <span>{{ item.category.name }}</span>
+            <strong>{{ ledger.money(item.amount) }}</strong>
+          </div>
+          <mat-progress-bar mode="determinate" [value]="item.share"></mat-progress-bar>
+        </div>
+      } @empty {
+        <p class="empty-state">За этот месяц расходов пока нет.</p>
+      }
+    </div>
+  </div>
+
+  <div class="surface">
+    <div class="section-title">
+      <h2>Кредиты</h2>
+      <span>{{ ledger.loans().length }} активных</span>
+    </div>
+
+    <div class="loan-list">
+      @for (loan of ledger.loans(); track loan.id) {
+        <div class="loan-row">
+          <div>
+            <strong>{{ loan.name }}</strong>
+            <span>Платеж {{ loan.dueDay }} числа</span>
+          </div>
+          <strong>{{ ledger.money(loan.remainingAmount) }}</strong>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<section class="surface obligations">
+  <div class="section-title">
+    <h2>Обязательные платежи</h2>
+    <span>Кредиты и регулярные списания</span>
+  </div>
+
+  <div class="obligation-grid">
+    @for (loan of ledger.upcomingLoanPayments(); track loan.id) {
+      <article class="obligation-item">
+        <div>
+          <strong>{{ loan.name }}</strong>
+          <span>До {{ loan.dueDay }} числа</span>
+        </div>
+        <strong>{{ ledger.money(loan.monthlyPayment) }}</strong>
+      </article>
+    }
+  </div>
+</section>
+
+<section class="surface">
+  <div class="section-title">
+    <h2>Последние операции</h2>
+    <span>{{ ledger.recentTransactions().length }} записей</span>
+  </div>
+
+  <div class="table-shell">
+    <table mat-table [dataSource]="ledger.recentTransactions()" class="ledger-table">
+    <ng-container matColumnDef="date">
+      <th mat-header-cell *matHeaderCellDef>Дата</th>
+      <td mat-cell *matCellDef="let transaction">{{ transaction.date }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="title">
+      <th mat-header-cell *matHeaderCellDef>Операция</th>
+      <td mat-cell *matCellDef="let transaction">{{ transaction.title }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="category">
+      <th mat-header-cell *matHeaderCellDef>Категория</th>
+      <td mat-cell *matCellDef="let transaction">
+        <span class="category-name">
+          <span class="category-dot" [style.background]="ledger.categoryById(transaction.categoryId).color"></span>
+          {{ ledger.categoryById(transaction.categoryId).name }}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="amount">
+      <th mat-header-cell *matHeaderCellDef class="numeric">Сумма</th>
+      <td mat-cell *matCellDef="let transaction" class="numeric">
+        {{ transaction.type === 'income' ? '+' : '-' }}{{ ledger.money(transaction.amount) }}
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+    </table>
+  </div>
+</section>

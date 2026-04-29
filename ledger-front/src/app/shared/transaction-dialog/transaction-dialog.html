@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>Добавить операцию</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-form">
+    @if (canSelectType) {
+      <mat-button-toggle-group formControlName="type" aria-label="Тип операции" (change)="typeChanged($event.value)">
+        <mat-button-toggle value="expense">
+          <mat-icon>north_east</mat-icon>
+          Расход
+        </mat-button-toggle>
+        <mat-button-toggle value="income">
+          <mat-icon>south_west</mat-icon>
+          Доход
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    }
+
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Дата</mat-label>
+        <input matInput formControlName="date" type="date" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Категория</mat-label>
+        <mat-select formControlName="categoryId" (selectionChange)="syncLoanControl()">
+          @for (category of availableCategories(); track category.id) {
+            <mat-option [value]="category.id">{{ category.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Сумма</mat-label>
+        <input matInput formControlName="amount" type="number" min="1" inputmode="decimal" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="wide-field">
+        <mat-label>Описание</mat-label>
+        <input matInput formControlName="title" />
+      </mat-form-field>
+
+      @if (linksToLoan()) {
+        <mat-form-field appearance="outline" class="wide-field">
+          <mat-label>Кредит</mat-label>
+          <mat-select formControlName="loanId">
+            @for (loan of data.loans; track loan.id) {
+              <mat-option [value]="loan.id">{{ loan.name }}</mat-option>
+            }
+          </mat-select>
+          @if (form.controls.loanId.hasError('required')) {
+            <mat-error>Выберите кредит</mat-error>
+          }
+        </mat-form-field>
+      }
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">Отмена</button>
+  <button mat-flat-button type="button" (click)="save()">Добавить</button>
+</mat-dialog-actions>

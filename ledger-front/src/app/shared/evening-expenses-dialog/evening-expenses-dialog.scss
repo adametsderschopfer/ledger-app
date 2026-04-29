@@ -1,0 +1,30 @@
+:host {
+  display: block;
+}
+
+.expense-list,
+.rows {
+  display: grid;
+  gap: 16px;
+}
+
+.expense-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(132px, 1fr)) 48px;
+  gap: 12px;
+  align-items: start;
+}
+
+.expense-row:has(mat-form-field:nth-of-type(3):last-of-type) {
+  grid-template-columns: minmax(148px, 1fr) minmax(180px, 1.4fr) minmax(112px, 0.8fr) 48px;
+}
+
+@media (max-width: 760px) {
+  .expense-row {
+    grid-template-columns: 1fr;
+  }
+
+  .expense-row button {
+    justify-self: end;
+  }
+}

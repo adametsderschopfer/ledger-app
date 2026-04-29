@@ -1,0 +1,32 @@
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-heading h1,
+.eyebrow {
+  margin: 0;
+}
+
+.eyebrow {
+  margin-bottom: 12px;
+  color: var(--ledger-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-heading button {
+    width: 100%;
+  }
+}

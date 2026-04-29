@@ -1,0 +1,29 @@
+.login-page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px;
+  background: var(--ledger-page-bg);
+}
+
+.login-card {
+  width: min(100%, 420px);
+  border-radius: 8px;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--mat-sys-error);
+}
+
+mat-card-footer {
+  padding: 0 16px 16px;
+  color: var(--ledger-muted);
+  font-size: 0.86rem;
+}

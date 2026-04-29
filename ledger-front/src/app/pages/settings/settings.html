@@ -1,0 +1,68 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Настройки</p>
+    <h1>Категории и параметры учета</h1>
+  </div>
+  <button mat-flat-button type="button" (click)="openCategoryDialog()">
+    <mat-icon>add</mat-icon>
+    Добавить категорию
+  </button>
+</section>
+
+<section class="surface preferences">
+  <div>
+    <h2>Внешний вид</h2>
+    <p>Цветовая схема применяется ко всему интерфейсу и сохраняется в браузере.</p>
+  </div>
+  <mat-slide-toggle [checked]="theme.isDark()" (change)="setDarkTheme($event)">
+    Темная тема
+  </mat-slide-toggle>
+</section>
+
+<section class="category-grid" aria-label="Список категорий">
+  <div class="surface">
+    <h2>Расходы</h2>
+    <div class="category-list">
+      @for (category of ledger.expenseCategories(); track category.id) {
+        <article class="category-item">
+          <div>
+            <span class="category-dot" [style.background]="category.color"></span>
+            <strong>{{ category.name }}</strong>
+            @if (category.linksToLoan) {
+              <mat-icon class="chip-icon" aria-hidden="true">account_balance</mat-icon>
+            }
+          </div>
+          @if (!category.isSystem) {
+            <button mat-icon-button type="button" [attr.aria-label]="'Удалить ' + category.name" (click)="ledger.removeCategory(category.id)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </article>
+      }
+    </div>
+  </div>
+
+  <div class="surface">
+    <h2>Доходы</h2>
+    <div class="category-list">
+      @for (category of ledger.incomeCategories(); track category.id) {
+        <article class="category-item">
+          <div>
+            <span class="category-dot" [style.background]="category.color"></span>
+            <strong>{{ category.name }}</strong>
+          </div>
+          @if (!category.isSystem) {
+            <button mat-icon-button type="button" [attr.aria-label]="'Удалить ' + category.name" (click)="ledger.removeCategory(category.id)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<section class="surface settings-note">
+  <h2>Поведение приложения</h2>
+  <p>После 18:00 приложение показывает диалог для быстрого внесения расходов за день. Записи добавляются пачкой и могут уменьшать остаток по выбранному кредиту.</p>
+</section>

@@ -1,0 +1,32 @@
+.dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  padding: 6px 2px 2px;
+  overflow: visible;
+}
+
+mat-dialog-content {
+  overflow-x: hidden;
+}
+
+.wide-field {
+  grid-column: span 2;
+}
+
+.credit-checkbox {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .dialog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wide-field {
+    grid-column: auto;
+  }
+}

@@ -1,0 +1,44 @@
+<div class="groups">
+  @for (group of groups(); track group.date) {
+    <section class="day-group">
+      <header class="day-header">
+        <div>
+          <strong>{{ group.date }}</strong>
+          <span>{{ group.transactions.length }} операций</span>
+        </div>
+        <div class="day-totals">
+          @if (group.income > 0) {
+            <span class="income">+{{ ledger.money(group.income) }}</span>
+          }
+          @if (group.expense > 0) {
+            <span class="expense">-{{ ledger.money(group.expense) }}</span>
+          }
+        </div>
+      </header>
+
+      <div class="transaction-list">
+        @for (transaction of group.transactions; track transaction.id) {
+          <article class="transaction-row">
+            <div class="transaction-icon" [class.income-icon]="transaction.type === 'income'">
+              <mat-icon>{{ transaction.type === 'income' ? 'south_west' : 'north_east' }}</mat-icon>
+            </div>
+            <div class="transaction-main">
+              <strong>{{ transaction.title }}</strong>
+              <span>
+                {{ ledger.categoryById(transaction.categoryId).name }}
+                @if (transaction.loanId) {
+                  · {{ ledger.loanById(transaction.loanId)?.name }}
+                }
+              </span>
+            </div>
+            <strong [class.income]="transaction.type === 'income'" [class.expense]="transaction.type === 'expense'">
+              {{ transaction.type === 'income' ? '+' : '-' }}{{ ledger.money(transaction.amount) }}
+            </strong>
+          </article>
+        }
+      </div>
+    </section>
+  } @empty {
+    <div class="empty-state">{{ emptyText() }}</div>
+  }
+</div>
