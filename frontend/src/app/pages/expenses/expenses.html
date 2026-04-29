@@ -1,0 +1,17 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">{{ i18n.t('transactions.expensesEyebrow') }}</p>
+    <h1>{{ i18n.t('transactions.expensesTitle') }}</h1>
+  </div>
+  <button mat-flat-button type="button" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    Добавить расход
+  </button>
+</section>
+
+<app-transaction-groups
+  [groups]="ledger.expenseTransactionGroups()"
+  [emptyText]="i18n.t('transactions.expensesEmpty')"
+  [isLoading]="ledger.isLoading()"
+  [hasLoaded]="ledger.hasLoaded()"
+/>

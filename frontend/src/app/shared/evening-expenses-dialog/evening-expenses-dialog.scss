@@ -1,0 +1,63 @@
+:host {
+  display: block;
+}
+
+.expense-list,
+.rows {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.expense-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr) minmax(132px, 0.7fr) minmax(
+      180px,
+      1fr
+    ) 48px;
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.expense-row:has(mat-form-field:nth-of-type(3):last-of-type) {
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr) minmax(132px, 0.7fr) 48px;
+}
+
+.expense-row mat-form-field {
+  min-width: 0;
+}
+
+.empty-select-field .empty-select-icon {
+  color: var(--mat-sys-error);
+}
+
+.empty-select-field mat-hint {
+  color: var(--mat-sys-error);
+}
+
+@media (max-width: 1120px) {
+  .expense-row,
+  .expense-row:has(mat-form-field:nth-of-type(3):last-of-type) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .expense-row button {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 760px) {
+  .expense-row,
+  .expense-row:has(mat-form-field:nth-of-type(3):last-of-type) {
+    grid-template-columns: 1fr;
+  }
+
+  .expense-row {
+    gap: 8px;
+  }
+
+  .expense-row button {
+    justify-self: end;
+  }
+}

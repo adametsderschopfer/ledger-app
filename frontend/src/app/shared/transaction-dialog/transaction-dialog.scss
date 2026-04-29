@@ -1,0 +1,45 @@
+.dialog-form {
+  display: grid;
+  gap: 18px;
+  padding-top: 4px;
+  overflow: visible;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  padding: 2px;
+  overflow: visible;
+}
+
+.wide-field {
+  grid-column: span 3;
+}
+
+mat-button-toggle-group {
+  width: 100%;
+}
+
+mat-button-toggle {
+  flex: 1;
+}
+
+.empty-select-field .empty-select-icon {
+  color: var(--mat-sys-error);
+}
+
+.empty-select-field mat-hint {
+  color: var(--mat-sys-error);
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wide-field {
+    grid-column: auto;
+  }
+}

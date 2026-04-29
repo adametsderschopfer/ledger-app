@@ -1,0 +1,82 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">{{ i18n.t('loan.sectionEyebrow') }}</p>
+    <h1>{{ i18n.t('loan.title') }}</h1>
+  </div>
+  <button mat-flat-button type="button" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    {{ i18n.t('actions.addLoan') }}
+  </button>
+</section>
+
+<section class="surface">
+  @if (!ledger.hasLoaded()) {
+    <div class="ledger-skeleton-list">
+      <div class="ledger-skeleton-row"></div>
+      <div class="ledger-skeleton-row"></div>
+      <div class="ledger-skeleton-row"></div>
+    </div>
+  } @else if (ledger.loans().length === 0) {
+    <app-empty-state icon="account_balance" title="Кредитов пока нет" text="Добавьте кредит, чтобы отслеживать остаток, день платежа и прогресс погашения." />
+  } @else {
+    <div class="table-shell">
+      <table mat-table [dataSource]="ledger.loans()" class="ledger-table">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('loan.name') }}</th>
+      <td mat-cell *matCellDef="let loan">
+        <strong>{{ loan.name || '–' }}</strong>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="payment">
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('loan.monthlyPayment') }}</th>
+      <td mat-cell *matCellDef="let loan">{{ ledger.money(loan.monthlyPayment || 0) }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="dueDay">
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('loan.dueDay') }}</th>
+      <td mat-cell *matCellDef="let loan">{{ loan.dueDay || '–' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="remaining">
+      <th mat-header-cell *matHeaderCellDef class="numeric">{{ i18n.t('loan.remaining') }}</th>
+      <td mat-cell *matCellDef="let loan" class="numeric">{{ ledger.money(loan.remainingAmount || 0) }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="progress">
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('loan.paid') }}</th>
+      <td mat-cell *matCellDef="let loan" class="progress-cell">
+        <mat-progress-bar mode="determinate" [value]="paidShare(loan.originalAmount, loan.remainingAmount)" />
+        <span>{{ paidShare(loan.originalAmount, loan.remainingAmount) }}%</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+      <td mat-cell *matCellDef="let loan" class="actions-cell">
+        <button mat-icon-button type="button" [attr.aria-label]="i18n.t('actions.more')" [matMenuTriggerFor]="loanMenu">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #loanMenu="matMenu">
+          <button mat-menu-item type="button" (click)="recordPayment(loan)">
+            <mat-icon>payments</mat-icon>
+            <span>{{ i18n.t('actions.pay') }}</span>
+          </button>
+          <button mat-menu-item type="button" (click)="openEditDialog(loan)">
+            <mat-icon>edit</mat-icon>
+            <span>{{ i18n.t('actions.edit') }}</span>
+          </button>
+          <button mat-menu-item type="button" (click)="removeLoan(loan)">
+            <mat-icon>delete</mat-icon>
+            <span>{{ i18n.t('actions.delete') }}</span>
+          </button>
+        </mat-menu>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table>
+    </div>
+  }
+</section>

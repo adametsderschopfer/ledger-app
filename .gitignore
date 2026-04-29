@@ -1,1 +1,4 @@
 /AGENTS.md
+backend/.docker/
+backend/.idea/
+frontend/dist/
