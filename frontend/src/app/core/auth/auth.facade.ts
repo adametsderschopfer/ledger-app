@@ -1,6 +1,6 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateUser, LoginCredentials } from './auth.models';
+import { CreateUser, LoginCredentials, UpdatePassword, UpdateProfile } from './auth.models';
 import { AuthRepository } from './auth.repository';
 
 @Injectable({ providedIn: 'root' })
@@ -28,6 +28,14 @@ export class AuthFacade {
 
   logout(): void {
     this.repository.logout();
+  }
+
+  updateProfile(profile: UpdateProfile): Observable<boolean> {
+    return this.repository.updateProfile(profile);
+  }
+
+  updatePassword(password: UpdatePassword): Observable<boolean> {
+    return this.repository.updatePassword(password);
   }
 
   addUser(user: CreateUser): void {

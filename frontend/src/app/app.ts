@@ -37,11 +37,11 @@ interface NavigationItem {
     | 'nav.incomes'
     | 'nav.expenses'
     | 'nav.loans'
-    | 'nav.settings'
-    | 'nav.server';
+    | 'nav.settings';
   icon: string;
   route: string;
   adminOnly?: boolean;
+  disabled?: boolean;
 }
 
 @Component({
@@ -89,16 +89,15 @@ export class App {
     const items: readonly NavigationItem[] = [
       { labelKey: 'nav.dashboard', icon: 'dashboard', route: '/dashboard' },
       { labelKey: 'nav.transactions', icon: 'receipt_long', route: '/transactions' },
-      { labelKey: 'nav.statistics', icon: 'monitoring', route: '/statistics' },
+      { labelKey: 'nav.statistics', icon: 'monitoring', route: '/statistics', disabled: true },
       { labelKey: 'nav.incomes', icon: 'south_west', route: '/incomes' },
       { labelKey: 'nav.expenses', icon: 'north_east', route: '/expenses' },
       { labelKey: 'nav.loans', icon: 'account_balance', route: '/loans' },
-      { labelKey: 'nav.settings', icon: 'settings', route: '/settings' },
-      { labelKey: 'nav.server', icon: 'admin_panel_settings', route: '/server', adminOnly: true },
     ];
 
     return items.filter((item) => !item.adminOnly || this.auth.isAdmin());
   });
+  readonly settingsNavItem: NavigationItem = { labelKey: 'nav.settings', icon: 'settings', route: '/settings' };
 
   constructor() {
     effect(() => {

@@ -4,7 +4,7 @@ Angular web application for Ledger, a self-hosted personal finance service. The 
 
 ## Responsibilities
 
-- Provide the browser UI for authentication, dashboards, statistics, transactions, incomes, expenses, loans, settings, and server administration.
+- Provide the browser UI for authentication, dashboards, statistics, transaction history, incomes, expenses, loans, obligations, settings, and server administration.
 - Call the backend through relative `/api/*` endpoints.
 - Support local development with Angular CLI and self-hosted deployment through the root Docker Compose stack.
 
@@ -72,14 +72,14 @@ docker build -t ledger-frontend ./frontend
 
 The application expects the backend API gateway to expose:
 
-- `/api/auth/*` for login, logout, and session state.
-- `/api/ledger/*` for categories, transactions, and loans.
+- `/api/app/config` for system language defaults. Supported language values are `RU` and `EN`.
+- `/api/auth/*` for login, logout, session state, profile updates, and password changes.
+- `/api/ledger/*` for categories, transactions, loans, and obligations.
 - `/api/server/*` for admin user management.
 
-Default local accounts are created by the backend:
+The default local admin is created by the backend:
 
 - `admin@ledger.local` / `admin`
-- `user@ledger.local` / `user`
 
 ## Development Standards
 

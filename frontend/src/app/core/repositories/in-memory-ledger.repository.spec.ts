@@ -88,6 +88,29 @@ describe('InMemoryLedgerRepository', () => {
     });
   });
 
+  it('should add, update and remove custom obligations', () => {
+    repository.addObligation({
+      name: 'Интернет',
+      amount: 1200,
+      dueDay: 15,
+      categoryId: 'utilities',
+    });
+    const created = repository.obligations().find((obligation) => obligation.name === 'Интернет');
+
+    expect(created).toBeTruthy();
+
+    repository.updateObligation({
+      id: created?.id ?? '',
+      name: 'Интернет и ТВ',
+      amount: 1500,
+      dueDay: 16,
+      categoryId: 'utilities',
+    });
+    repository.removeObligation(created?.id ?? '');
+
+    expect(repository.obligations().some((obligation) => obligation.name === 'Интернет и ТВ')).toBe(false);
+  });
+
   it('should add and remove non-system categories but keep system categories', () => {
     repository.addCategory({
       name: 'Подписки',

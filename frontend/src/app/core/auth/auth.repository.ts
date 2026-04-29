@@ -1,6 +1,12 @@
 import { Signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AppUser, CreateUser, LoginCredentials } from './auth.models';
+import {
+  AppUser,
+  CreateUser,
+  LoginCredentials,
+  UpdatePassword,
+  UpdateProfile,
+} from './auth.models';
 
 export abstract class AuthRepository {
   abstract readonly currentUser: Signal<AppUser | null>;
@@ -12,6 +18,8 @@ export abstract class AuthRepository {
   abstract loadUsers(): void;
   abstract login(credentials: LoginCredentials): Observable<boolean>;
   abstract logout(): void;
+  abstract updateProfile(profile: UpdateProfile): Observable<boolean>;
+  abstract updatePassword(password: UpdatePassword): Observable<boolean>;
   abstract addUser(user: CreateUser): void;
   abstract removeUser(userId: string): void;
   abstract toggleUser(userId: string): void;

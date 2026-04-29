@@ -3,10 +3,13 @@ import {
   Category,
   CreateCategory,
   CreateLoan,
+  CreateObligation,
   CreateTransaction,
   LedgerTransaction,
   Loan,
+  Obligation,
   UpdateLoan,
+  UpdateObligation,
 } from '../models/ledger.models';
 import { LedgerRepository } from './ledger.repository';
 
@@ -58,6 +61,23 @@ export class InMemoryLedgerRepository extends LedgerRepository {
     },
   ]);
 
+  private readonly obligationState = signal<readonly Obligation[]>([
+    {
+      id: 'internet',
+      name: 'Домашний интернет',
+      amount: 900,
+      dueDay: 18,
+      categoryId: 'utilities',
+    },
+    {
+      id: 'mobile',
+      name: 'Мобильная связь',
+      amount: 1200,
+      dueDay: 25,
+      categoryId: 'utilities',
+    },
+  ]);
+
   private readonly isLoadingState = signal(false);
   private readonly hasLoadedState = signal(true);
 
@@ -66,6 +86,7 @@ export class InMemoryLedgerRepository extends LedgerRepository {
   override readonly categories = this.categoryState.asReadonly();
   override readonly transactions = this.transactionState.asReadonly();
   override readonly loans = this.loanState.asReadonly();
+  override readonly obligations = this.obligationState.asReadonly();
 
   override load(): void {
     return;
@@ -119,6 +140,28 @@ export class InMemoryLedgerRepository extends LedgerRepository {
         transaction.loanId === loanId ? { ...transaction, loanId: undefined } : transaction,
       ),
     );
+  }
+
+  override addObligation(obligation: CreateObligation): void {
+    this.obligationState.update((obligations) => [
+      {
+        ...obligation,
+        id: createId('obligation'),
+      },
+      ...obligations,
+    ]);
+  }
+
+  override updateObligation(updatedObligation: UpdateObligation): void {
+    this.obligationState.update((obligations) =>
+      obligations.map((obligation) =>
+        obligation.id === updatedObligation.id ? { ...obligation, ...updatedObligation } : obligation,
+      ),
+    );
+  }
+
+  override removeObligation(obligationId: string): void {
+    this.obligationState.update((obligations) => obligations.filter((obligation) => obligation.id !== obligationId));
   }
 
   override addCategory(category: CreateCategory): void {

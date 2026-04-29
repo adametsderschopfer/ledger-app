@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Расходы за сегодня</h2>
+<h2 mat-dialog-title>{{ i18n.t('dashboard.todayExpenses') }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="expense-list">
@@ -6,7 +6,7 @@
       @for (row of rows.controls; track row; let index = $index) {
         <div [formGroupName]="index" class="expense-row">
           <mat-form-field appearance="outline" [class.empty-select-field]="hasNoCategories">
-            <mat-label>Категория</mat-label>
+            <mat-label>{{ i18n.t('transactions.category') }}</mat-label>
             @if (hasNoCategories) {
               <mat-icon matPrefix class="empty-select-icon">warning</mat-icon>
             }
@@ -14,27 +14,27 @@
               @for (category of data.categories; track category.id) {
                 <mat-option [value]="category.id">{{ category.name }}</mat-option>
               } @empty {
-                <mat-option disabled>Нет доступных категорий</mat-option>
+                <mat-option disabled>{{ i18n.t('transactions.noCategories') }}</mat-option>
               }
             </mat-select>
             @if (hasNoCategories) {
-              <mat-hint>Список категорий пуст. Добавьте категорию в настройках.</mat-hint>
+              <mat-hint>{{ i18n.t('transactions.noCategoriesHint') }}</mat-hint>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Описание</mat-label>
-            <input matInput formControlName="title" placeholder="Например, кофе" />
+            <mat-label>{{ i18n.t('transactions.description') }}</mat-label>
+            <input matInput formControlName="title" [placeholder]="i18n.t('transactions.exampleDescription')" />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Сумма</mat-label>
+            <mat-label>{{ i18n.t('transactions.sum') }}</mat-label>
             <input matInput formControlName="amount" type="number" min="1" inputmode="decimal" />
           </mat-form-field>
 
           @if (rowLinksToLoan(row)) {
             <mat-form-field appearance="outline" [class.empty-select-field]="rowHasNoLoans(row)">
-              <mat-label>Кредит</mat-label>
+              <mat-label>{{ i18n.t('loan.name') }}</mat-label>
               @if (rowHasNoLoans(row)) {
                 <mat-icon matPrefix class="empty-select-icon">warning</mat-icon>
               }
@@ -42,13 +42,13 @@
                 @for (loan of data.loans; track loan.id) {
                   <mat-option [value]="loan.id">{{ loan.name }}</mat-option>
                 } @empty {
-                  <mat-option disabled>Нет доступных кредитов</mat-option>
+                  <mat-option disabled>{{ i18n.t('transactions.noLoans') }}</mat-option>
                 }
               </mat-select>
               @if (rowHasNoLoans(row)) {
-                <mat-hint>Список кредитов пуст. Добавьте кредит, чтобы выбрать его здесь.</mat-hint>
+                <mat-hint>{{ i18n.t('transactions.noLoansHint') }}</mat-hint>
               } @else if (row.controls.loanId.hasError('required')) {
-                <mat-error>Выберите кредит</mat-error>
+                <mat-error>{{ i18n.t('transactions.noCreditSelected') }}</mat-error>
               }
             </mat-form-field>
           }
@@ -56,7 +56,7 @@
           <button
             mat-icon-button
             type="button"
-            aria-label="Удалить строку расхода"
+            [attr.aria-label]="i18n.t('actions.deleteExpenseRow')"
             [disabled]="rows.length === 1"
             (click)="removeRow(index)"
           >
@@ -68,14 +68,14 @@
 
     <button mat-stroked-button type="button" [disabled]="hasNoCategories" (click)="addRow()">
       <mat-icon>add</mat-icon>
-      Добавить строку
+      {{ i18n.t('actions.addRow') }}
     </button>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close type="button">Позже</button>
+  <button mat-button mat-dialog-close type="button">{{ i18n.t('actions.later') }}</button>
   <button mat-flat-button type="button" [disabled]="isMissingRequiredList()" (click)="save()">
-    Добавить расходы
+    {{ i18n.t('actions.addExpense') }}
   </button>
 </mat-dialog-actions>

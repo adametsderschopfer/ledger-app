@@ -26,7 +26,7 @@ export class Expenses {
       data: {
         mode: 'expense',
         categories: this.ledger.categories(),
-        loans: this.ledger.loans(),
+        loans: this.ledger.activeLoans(),
       },
     });
 

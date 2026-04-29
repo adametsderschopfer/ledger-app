@@ -49,6 +49,49 @@ describe('LedgerFacade', () => {
     expect(facade.categoryLinksToLoan('groceries')).toBe(false);
   });
 
+  it('should record custom obligations as expenses', () => {
+    facade.addObligation({
+      name: 'Интернет',
+      amount: 1200,
+      dueDay: 15,
+      categoryId: 'utilities',
+    });
+
+    const obligation = facade.upcomingObligations().find((item) => item.name === 'Интернет');
+    expect(obligation).toBeTruthy();
+
+    facade.recordObligationPayment(obligation!);
+
+    expect(facade.transactions()[0]).toMatchObject({
+      type: 'expense',
+      categoryId: 'utilities',
+      title: 'Обязательный платеж: Интернет',
+      amount: 1200,
+    });
+  });
+
+  it('should remove a paid loan from upcoming obligations', () => {
+    facade.addLoan({
+      name: 'Короткий кредит',
+      originalAmount: 500,
+      monthlyPayment: 500,
+      dueDay: 3,
+    });
+    const loan = facade.loans().find((item) => item.name === 'Короткий кредит');
+
+    expect(loan).toBeTruthy();
+    expect(
+      facade.upcomingObligations().some((item) => item.source === 'loan' && item.id === loan!.id),
+    ).toBe(true);
+
+    facade.recordLoanPayment(loan!.id);
+
+    expect(facade.loans().find((item) => item.id === loan!.id)?.remainingAmount).toBe(0);
+    expect(
+      facade.upcomingObligations().some((item) => item.source === 'loan' && item.id === loan!.id),
+    ).toBe(false);
+  });
+
   it('should format money in rubles', () => {
     expect(facade.money(120000)).toContain('120');
     expect(facade.money(120000)).toContain('₽');

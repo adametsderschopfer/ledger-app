@@ -20,6 +20,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { AppLanguageService } from '../../core/i18n/app-language.service';
 import { Category, DailyExpenseDraft, Loan } from '../../core/models/ledger.models';
 
 export interface EveningExpensesDialogData {
@@ -58,6 +59,7 @@ export class EveningExpensesDialog {
     MatDialogRef<EveningExpensesDialog, readonly DailyExpenseDraft[]>,
   );
   readonly data = inject<EveningExpensesDialogData>(MAT_DIALOG_DATA);
+  readonly i18n = inject(AppLanguageService);
   readonly hasNoCategories = this.data.categories.length === 0;
   readonly hasNoLoans = this.data.loans.length === 0;
 

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"ledger/backend/internal/domain"
 	"ledger/backend/internal/platform"
 )
 
@@ -17,6 +18,12 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		platform.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+	mux.HandleFunc("GET /api/app/config", func(w http.ResponseWriter, _ *http.Request) {
+		platform.WriteJSON(w, http.StatusOK, domain.AppConfig{
+			Language:           domain.NormalizeLanguage(platform.Env("APP_LANGUAGE", "RU")),
+			SupportedLanguages: domain.SupportedLanguages,
+		})
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		switch {

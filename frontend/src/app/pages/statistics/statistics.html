@@ -1,17 +1,17 @@
 <div class="statistics-page">
 <section class="page-heading">
   <div>
-    <p class="eyebrow">Аналитика</p>
-    <h1>Статистика финансов</h1>
+    <p class="eyebrow">{{ i18n.t('stats.analytics') }}</p>
+    <h1>{{ i18n.t('stats.title') }}</h1>
   </div>
   <a mat-stroked-button routerLink="/transactions">
     <mat-icon>receipt_long</mat-icon>
-    Открыть журнал
+    {{ i18n.t('stats.openJournal') }}
   </a>
 </section>
 
 @if (!ledger.hasLoaded()) {
-  <section class="ledger-skeleton-list" aria-label="Загрузка статистики">
+  <section class="ledger-skeleton-list" [attr.aria-label]="i18n.t('stats.loading')">
     <div class="ledger-skeleton-card"></div>
     <div class="ledger-skeleton-card"></div>
     <div class="ledger-skeleton-card"></div>
@@ -19,11 +19,11 @@
 } @else if (!hasTransactions()) {
   <app-empty-state
     icon="monitoring"
-    title="Статистика появится после первых операций"
-    text="Добавьте поступления и расходы, чтобы увидеть динамику, категории, кредитную нагрузку и ежедневные паттерны."
+    [title]="i18n.t('stats.emptyTitle')"
+    [text]="i18n.t('stats.emptyText')"
   />
 } @else {
-  <section class="kpi-grid" aria-label="Ключевые показатели">
+  <section class="kpi-grid" [attr.aria-label]="i18n.t('stats.kpis')">
     @for (kpi of kpis(); track kpi.label) {
       <article class="kpi" [class.income-tone]="kpi.tone === 'income'" [class.expense-tone]="kpi.tone === 'expense'" [class.balance-tone]="kpi.tone === 'balance'">
         <mat-icon aria-hidden="true">{{ kpi.icon }}</mat-icon>
@@ -37,13 +37,13 @@
   <section class="surface hero-chart">
     <div class="section-title">
       <div>
-        <h2>Динамика за 12 месяцев</h2>
-        <span>Поступления, расходы и чистый результат по месяцам</span>
+        <h2>{{ i18n.t('stats.trendTitle') }}</h2>
+        <span>{{ i18n.t('stats.trendSubtitle') }}</span>
       </div>
       <strong>{{ signedMoney(netBalance()) }}</strong>
     </div>
 
-    <div class="cashflow-chart" role="img" aria-label="Линейный график баланса и столбцы поступлений и расходов за 12 месяцев">
+    <div class="cashflow-chart" role="img" [attr.aria-label]="i18n.t('stats.trendAria')">
       <svg [attr.viewBox]="chartViewBox()" preserveAspectRatio="none" aria-hidden="true">
         <polygon class="balance-area" [attr.points]="balanceAreaPoints()"></polygon>
         <polyline class="balance-line" [attr.points]="balancePoints()"></polyline>
@@ -71,13 +71,13 @@
     <article class="surface category-panel">
       <div class="section-title">
         <div>
-          <h2>Расходы по категориям</h2>
-          <span>Доля категорий за весь период</span>
+          <h2>{{ i18n.t('dashboard.categoryExpenses') }}</h2>
+          <span>{{ i18n.t('stats.categoryShare') }}</span>
         </div>
       </div>
 
       <div class="donut-layout">
-        <svg viewBox="0 0 180 180" class="donut" role="img" aria-label="Кольцевая диаграмма расходов по категориям">
+        <svg viewBox="0 0 180 180" class="donut" role="img" [attr.aria-label]="i18n.t('stats.expenseDonutAria')">
           <circle class="donut-track" cx="90" cy="90" r="68"></circle>
           @for (category of expenseCategories(); track category.id) {
             <circle
@@ -90,7 +90,7 @@
               [attr.stroke-dashoffset]="category.offset"
             ></circle>
           }
-          <text x="90" y="84" text-anchor="middle">Расходы</text>
+          <text x="90" y="84" text-anchor="middle">{{ i18n.t('transactions.expense') }}</text>
           <text x="90" y="106" text-anchor="middle">{{ money(totalExpense()) }}</text>
         </svg>
 
@@ -100,7 +100,7 @@
               <div>
                 <span class="category-dot" [style.background]="category.color"></span>
                 <strong>{{ category.name }}</strong>
-                <small>{{ category.transactions }} опер.</small>
+                <small>{{ category.transactions }} {{ i18n.t('stats.operationsShort') }}</small>
               </div>
               <span>{{ money(category.amount) }}</span>
               <div class="share-track">
@@ -116,8 +116,8 @@
     <article class="surface">
       <div class="section-title">
         <div>
-          <h2>Поступления</h2>
-          <span>Источники дохода и их вклад</span>
+          <h2>{{ i18n.t('transactions.income') }}</h2>
+          <span>{{ i18n.t('stats.incomeSources') }}</span>
         </div>
       </div>
 
@@ -127,12 +127,12 @@
             <span class="category-dot" [style.background]="category.color"></span>
             <div>
               <strong>{{ category.name }}</strong>
-              <small>{{ category.transactions }} опер. · {{ category.share }}%</small>
+              <small>{{ category.transactions }} {{ i18n.t('stats.operationsShort') }} · {{ category.share }}%</small>
             </div>
             <span>{{ money(category.amount) }}</span>
           </div>
         } @empty {
-          <app-empty-state icon="south_west" title="Поступлений пока нет" text="Добавьте доходы, чтобы увидеть структуру источников." />
+          <app-empty-state icon="south_west" [title]="i18n.t('transactions.incomesEmpty')" [text]="i18n.t('stats.incomeSources')" />
         }
       </div>
     </article>
@@ -141,8 +141,8 @@
   <section class="surface">
     <div class="section-title">
       <div>
-        <h2>Интенсивность расходов по дням недели</h2>
-        <span>Где чаще всего появляются траты</span>
+        <h2>{{ i18n.t('stats.weekdayTitle') }}</h2>
+        <span>{{ i18n.t('stats.weekdaySubtitle') }}</span>
       </div>
       <strong>{{ activeDays() }} {{ activeDaysLabel() }}</strong>
     </div>
@@ -152,7 +152,7 @@
         <article class="weekday-card" [style.--intensity]="percent(day.intensity)">
           <strong>{{ day.label }}</strong>
           <span>{{ money(day.amount) }}</span>
-          <small>{{ day.count }} опер.</small>
+          <small>{{ day.count }} {{ i18n.t('stats.operationsShort') }}</small>
         </article>
       }
     </div>
@@ -162,8 +162,8 @@
     <article class="surface">
       <div class="section-title">
         <div>
-          <h2>Кредитный портфель</h2>
-          <span>Остаток, погашение и месячная нагрузка</span>
+          <h2>{{ i18n.t('stats.loanPortfolio') }}</h2>
+          <span>{{ i18n.t('stats.loanPortfolioSubtitle') }}</span>
         </div>
         <strong>{{ percent(loanPayoffShare()) }}</strong>
       </div>
@@ -173,18 +173,18 @@
           <div class="loan-stat">
             <div>
               <strong>{{ loan.loan.name }}</strong>
-              <span>{{ money(loan.loan.remainingAmount) }} осталось из {{ money(loan.loan.originalAmount) }}</span>
+              <span>{{ money(loan.loan.remainingAmount) }} {{ i18n.t('stats.loanRemaining') }} {{ money(loan.loan.originalAmount) }}</span>
             </div>
             <div class="loan-bars">
               <span class="paid-bar" [style.width.%]="loan.paidShare"></span>
             </div>
             <div class="loan-meta">
-              <small>{{ percent(loan.paidShare) }} погашено</small>
-              <small>{{ money(loan.loan.monthlyPayment) }} / мес.</small>
+              <small>{{ percent(loan.paidShare) }} {{ i18n.t('stats.loanPaid') }}</small>
+              <small>{{ money(loan.loan.monthlyPayment) }} / {{ i18n.t('stats.perMonth') }}</small>
             </div>
           </div>
         } @empty {
-          <app-empty-state icon="account_balance" title="Кредитов пока нет" text="Добавленные кредиты появятся здесь с прогрессом погашения." />
+          <app-empty-state icon="account_balance" [title]="i18n.t('dashboard.emptyLoans')" [text]="i18n.t('dashboard.emptyLoansText')" />
         }
       </div>
     </article>
@@ -192,8 +192,8 @@
     <article class="surface">
       <div class="section-title">
         <div>
-          <h2>Крупнейшие расходы</h2>
-          <span>Операции, которые сильнее всего влияют на бюджет</span>
+          <h2>{{ i18n.t('stats.topExpenses') }}</h2>
+          <span>{{ i18n.t('stats.topExpensesSubtitle') }}</span>
         </div>
       </div>
 
@@ -215,8 +215,8 @@
   <section class="surface insights">
     <div class="section-title">
       <div>
-        <h2>Наблюдения</h2>
-        <span>Короткая выжимка по текущим данным</span>
+        <h2>{{ i18n.t('stats.insights') }}</h2>
+        <span>{{ i18n.t('stats.insightsSubtitle') }}</span>
       </div>
     </div>
 

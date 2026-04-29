@@ -1,0 +1,39 @@
+<h2 mat-dialog-title>{{ isEdit ? i18n.t('obligation.editTitle') : i18n.t('obligation.addTitle') }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-grid">
+    <mat-form-field appearance="outline" class="wide-field">
+      <mat-label>{{ i18n.t('obligation.name') }}</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ i18n.t('obligation.amount') }}</mat-label>
+      <input matInput type="number" min="1" formControlName="amount" inputmode="decimal" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ i18n.t('obligation.dueDay') }}</mat-label>
+      <input matInput type="number" min="1" max="31" formControlName="dueDay" inputmode="numeric" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="wide-field">
+      <mat-label>{{ i18n.t('transactions.category') }}</mat-label>
+      <mat-select formControlName="categoryId">
+        @for (category of data.categories; track category.id) {
+          <mat-option [value]="category.id">{{ category.name }}</mat-option>
+        }
+      </mat-select>
+      @if (data.categories.length === 0) {
+        <mat-hint>{{ i18n.t('transactions.noCategoriesHint') }}</mat-hint>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">{{ i18n.t('actions.cancel') }}</button>
+  <button mat-flat-button type="button" [disabled]="data.categories.length === 0" (click)="save()">
+    {{ i18n.t('actions.save') }}
+  </button>
+</mat-dialog-actions>

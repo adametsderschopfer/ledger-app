@@ -14,7 +14,8 @@ import (
 )
 
 type PostgresStore struct {
-	db *sql.DB
+	db       *sql.DB
+	language domain.AppLanguage
 }
 
 type DefaultUser struct {
@@ -22,8 +23,12 @@ type DefaultUser struct {
 	User domain.CreateUser
 }
 
-func NewPostgresStore(db *sql.DB) *PostgresStore {
-	return &PostgresStore{db: db}
+func NewPostgresStore(db *sql.DB, languages ...domain.AppLanguage) *PostgresStore {
+	language := domain.LanguageRU
+	if len(languages) > 0 {
+		language = domain.NormalizeLanguage(string(languages[0]))
+	}
+	return &PostgresStore{db: db, language: language}
 }
 
 func (s *PostgresStore) Migrate(ctx context.Context, defaultUsers []DefaultUser) error {
@@ -32,6 +37,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
+  avatar_url TEXT NOT NULL DEFAULT '',
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('user', 'admin')),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -59,6 +65,10 @@ CREATE TABLE IF NOT EXISTS categories (
 		return err
 	}
 
+	if _, err := s.db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT ''`); err != nil {
+		return err
+	}
+
 	for _, defaultUser := range defaultUsers {
 		if err := s.ensureDefaultUser(ctx, defaultUser.User, defaultUser.ID); err != nil {
 			return err
@@ -72,10 +82,10 @@ func (s *PostgresStore) Login(ctx context.Context, credentials domain.LoginCrede
 	var user domain.User
 	var passwordHash string
 	err := s.db.QueryRowContext(ctx, `
-SELECT id, name, email, password_hash, role, is_active
+SELECT id, name, email, avatar_url, password_hash, role, is_active
 FROM users
 WHERE lower(email) = lower($1)
-`, strings.TrimSpace(credentials.Email)).Scan(&user.ID, &user.Name, &user.Email, &passwordHash, &user.Role, &user.IsActive)
+`, strings.TrimSpace(credentials.Email)).Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL, &passwordHash, &user.Role, &user.IsActive)
 	if err != nil {
 		return domain.AuthSession{}, ErrInvalidCredentials
 	}
@@ -101,11 +111,11 @@ func (s *PostgresStore) Logout(ctx context.Context, token string) error {
 func (s *PostgresStore) ValidateSession(ctx context.Context, token string) (domain.User, error) {
 	var user domain.User
 	err := s.db.QueryRowContext(ctx, `
-SELECT u.id, u.name, u.email, u.role, u.is_active
+SELECT u.id, u.name, u.email, u.avatar_url, u.role, u.is_active
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token = $1
-`, token).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.IsActive)
+`, token).Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL, &user.Role, &user.IsActive)
 	if err != nil {
 		return domain.User{}, ErrInvalidCredentials
 	}
@@ -115,7 +125,7 @@ WHERE s.token = $1
 
 func (s *PostgresStore) ListUsers(ctx context.Context) ([]domain.User, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT id, name, email, role, is_active
+SELECT id, name, email, avatar_url, role, is_active
 FROM users
 ORDER BY created_at, name
 `)
@@ -127,13 +137,62 @@ ORDER BY created_at, name
 	users := make([]domain.User, 0)
 	for rows.Next() {
 		var user domain.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.IsActive); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL, &user.Role, &user.IsActive); err != nil {
 			return nil, err
 		}
 		users = append(users, user)
 	}
 
 	return users, rows.Err()
+}
+
+func (s *PostgresStore) UpdateProfile(ctx context.Context, userID string, profile domain.UpdateProfile) (domain.User, error) {
+	name := strings.TrimSpace(profile.Name)
+	email := strings.ToLower(strings.TrimSpace(profile.Email))
+	if name == "" || email == "" {
+		return domain.User{}, errors.New("missing required profile fields")
+	}
+
+	var user domain.User
+	err := s.db.QueryRowContext(ctx, `
+UPDATE users
+SET name = $2, email = $3, avatar_url = $4
+WHERE id = $1
+RETURNING id, name, email, avatar_url, role, is_active
+`, userID, name, email, strings.TrimSpace(profile.AvatarURL)).Scan(
+		&user.ID, &user.Name, &user.Email, &user.AvatarURL, &user.Role, &user.IsActive,
+	)
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return domain.User{}, ErrConflict
+		}
+		return domain.User{}, err
+	}
+
+	return user, nil
+}
+
+func (s *PostgresStore) UpdatePassword(ctx context.Context, userID string, password domain.UpdatePassword) error {
+	if len(password.NewPassword) < 4 {
+		return errors.New("new password is too short")
+	}
+
+	var passwordHash string
+	if err := s.db.QueryRowContext(ctx, `SELECT password_hash FROM users WHERE id = $1`, userID).Scan(&passwordHash); err != nil {
+		return ErrNotFound
+	}
+	if bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password.CurrentPassword)) != nil {
+		return ErrInvalidCredentials
+	}
+
+	newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(password.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.ExecContext(ctx, `UPDATE users SET password_hash = $2 WHERE id = $1`, userID, string(newPasswordHash))
+	return err
 }
 
 func (s *PostgresStore) CreateUser(ctx context.Context, user domain.CreateUser) (domain.User, error) {
@@ -165,8 +224,8 @@ func (s *PostgresStore) ToggleUser(ctx context.Context, userID string) (domain.U
 UPDATE users
 SET is_active = NOT is_active
 WHERE id = $1
-RETURNING id, name, email, role, is_active
-`, userID).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.IsActive)
+RETURNING id, name, email, avatar_url, role, is_active
+`, userID).Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL, &user.Role, &user.IsActive)
 	if err != nil {
 		return domain.User{}, ErrNotFound
 	}
@@ -200,9 +259,9 @@ func (s *PostgresStore) ensureUser(ctx context.Context, user domain.CreateUser, 
 	err = tx.QueryRowContext(ctx, `
 INSERT INTO users (id, name, email, password_hash, role)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, email, role, is_active
+RETURNING id, name, email, avatar_url, role, is_active
 `, created.ID, created.Name, created.Email, string(passwordHash), created.Role).Scan(
-		&created.ID, &created.Name, &created.Email, &created.Role, &created.IsActive,
+		&created.ID, &created.Name, &created.Email, &created.AvatarURL, &created.Role, &created.IsActive,
 	)
 	if err != nil {
 		var pqErr *pq.Error
@@ -212,7 +271,7 @@ RETURNING id, name, email, role, is_active
 		return domain.User{}, err
 	}
 
-	if err := seedDefaultCategories(ctx, tx, created.ID); err != nil {
+	if err := seedDefaultCategories(ctx, tx, created.ID, s.language); err != nil {
 		return domain.User{}, err
 	}
 
@@ -242,15 +301,15 @@ LIMIT 1
 		return err
 	}
 
-	return seedDefaultCategories(ctx, s.db, existingID)
+	return seedDefaultCategories(ctx, s.db, existingID, s.language)
 }
 
 type categorySeeder interface {
 	ExecContext(context.Context, string, ...any) (sql.Result, error)
 }
 
-func seedDefaultCategories(ctx context.Context, tx categorySeeder, userID string) error {
-	for _, category := range domain.DefaultCategories(userID) {
+func seedDefaultCategories(ctx context.Context, tx categorySeeder, userID string, language domain.AppLanguage) error {
+	for _, category := range domain.DefaultCategories(userID, language) {
 		_, err := tx.ExecContext(ctx, `
 INSERT INTO categories (user_id, id, name, type, color, is_system, links_to_loan)
 VALUES ($1, $2, $3, $4, $5, $6, $7)

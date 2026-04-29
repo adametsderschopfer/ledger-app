@@ -57,8 +57,17 @@
   background: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
 }
 
-mat-nav-list {
+.primary-nav button[disabled] {
+  opacity: 0.48;
+}
+
+.primary-nav {
   flex: 1 1 auto;
+}
+
+.settings-nav {
+  flex: 0 0 auto;
+  padding-bottom: 8px;
 }
 
 .content {
@@ -92,16 +101,24 @@ mat-sidenav-content {
   min-width: 0;
 }
 
-.user-chip > span {
+.user-chip > span,
+.user-chip > img {
   display: grid;
   width: 36px;
   height: 36px;
   flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.user-chip > span {
   place-items: center;
   color: #fff;
   background: var(--ledger-google-green);
-  border-radius: 999px;
   font-weight: 600;
+}
+
+.user-chip > img {
+  object-fit: cover;
 }
 
 .user-chip div {

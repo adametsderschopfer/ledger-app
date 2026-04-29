@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, authenticatedGuard } from './core/auth/auth.guards';
+import { authenticatedGuard } from './core/auth/auth.guards';
 
 export const routes: Routes = [
   {
@@ -43,8 +43,8 @@ export const routes: Routes = [
   },
   {
     path: 'server',
-    canMatch: [authenticatedGuard, adminGuard],
-    loadComponent: () => import('./pages/server-admin/server-admin').then((m) => m.ServerAdmin),
+    pathMatch: 'full',
+    redirectTo: 'settings',
   },
   {
     path: '',

@@ -4,6 +4,7 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string;
   password?: string;
   role: UserRole;
   isActive: boolean;
@@ -19,6 +20,17 @@ export interface CreateUser {
   email: string;
   password: string;
   role: UserRole;
+}
+
+export interface UpdateProfile {
+  name: string;
+  email: string;
+  avatarUrl: string;
+}
+
+export interface UpdatePassword {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface AuthSession {

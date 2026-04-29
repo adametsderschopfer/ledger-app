@@ -21,6 +21,8 @@ type Store interface {
 	Login(ctx context.Context, credentials domain.LoginCredentials) (domain.AuthSession, error)
 	Logout(ctx context.Context, token string) error
 	ValidateSession(ctx context.Context, token string) (domain.User, error)
+	UpdateProfile(ctx context.Context, userID string, profile domain.UpdateProfile) (domain.User, error)
+	UpdatePassword(ctx context.Context, userID string, password domain.UpdatePassword) error
 	ListUsers(ctx context.Context) ([]domain.User, error)
 	CreateUser(ctx context.Context, user domain.CreateUser) (domain.User, error)
 	DeleteUser(ctx context.Context, userID string) error
@@ -43,6 +45,8 @@ func (s *Service) Routes() http.Handler {
 	mux.HandleFunc("POST /api/auth/login", s.login)
 	mux.HandleFunc("GET /api/auth/me", s.me)
 	mux.HandleFunc("POST /api/auth/logout", s.logout)
+	mux.HandleFunc("PATCH /api/auth/profile", s.updateProfile)
+	mux.HandleFunc("PATCH /api/auth/password", s.updatePassword)
 	mux.HandleFunc("GET /api/server/users", s.users)
 	mux.HandleFunc("POST /api/server/users", s.createUser)
 	mux.HandleFunc("DELETE /api/server/users/", s.deleteUser)
@@ -84,6 +88,51 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = s.store.Logout(r.Context(), token)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Service) updateProfile(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.requireUser(w, r)
+	if !ok {
+		return
+	}
+
+	var payload domain.UpdateProfile
+	if err := platform.ReadJSON(r, &payload); err != nil {
+		platform.WriteError(w, http.StatusBadRequest, "invalid profile payload")
+		return
+	}
+
+	updated, err := s.store.UpdateProfile(r.Context(), user.ID, payload)
+	if errors.Is(err, ErrConflict) {
+		platform.WriteError(w, http.StatusConflict, "email is already used")
+		return
+	}
+	if err != nil {
+		platform.WriteError(w, http.StatusBadRequest, "profile could not be updated")
+		return
+	}
+
+	platform.WriteJSON(w, http.StatusOK, updated)
+}
+
+func (s *Service) updatePassword(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.requireUser(w, r)
+	if !ok {
+		return
+	}
+
+	var payload domain.UpdatePassword
+	if err := platform.ReadJSON(r, &payload); err != nil {
+		platform.WriteError(w, http.StatusBadRequest, "invalid password payload")
+		return
+	}
+
+	if err := s.store.UpdatePassword(r.Context(), user.ID, payload); err != nil {
+		platform.WriteError(w, http.StatusBadRequest, "password could not be updated")
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 

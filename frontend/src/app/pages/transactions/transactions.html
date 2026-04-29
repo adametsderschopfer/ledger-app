@@ -17,9 +17,9 @@
     </mat-panel-title>
     <mat-panel-description>
       @if (activeFilterCount() > 0) {
-        {{ activeFilterCount() }} активн.
+        {{ activeFilterCount() }} {{ i18n.t('transactions.activeFilters') }}
       } @else {
-        Все операции
+        {{ i18n.t('transactions.allHistory') }}
       }
     </mat-panel-description>
   </mat-expansion-panel-header>

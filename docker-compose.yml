@@ -44,13 +44,10 @@ services:
     environment:
       PORT: "8081"
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      APP_LANGUAGE: ${APP_LANGUAGE:-RU}
       DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:?Set DEFAULT_ADMIN_NAME in .env}
       DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:?Set DEFAULT_ADMIN_EMAIL in .env}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?Set DEFAULT_ADMIN_PASSWORD in .env}
-      DEFAULT_USER_ENABLED: ${DEFAULT_USER_ENABLED:-true}
-      DEFAULT_USER_NAME: ${DEFAULT_USER_NAME:-User}
-      DEFAULT_USER_EMAIL: ${DEFAULT_USER_EMAIL:-user@ledger.local}
-      DEFAULT_USER_PASSWORD: ${DEFAULT_USER_PASSWORD:-user}
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,6 +80,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: "8080"
+      APP_LANGUAGE: ${APP_LANGUAGE:-RU}
       AUTH_SERVICE_URL: http://auth-service:8081
       LEDGER_SERVICE_URL: http://ledger-service:8082
     depends_on:

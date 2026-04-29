@@ -5,10 +5,13 @@ import {
   Category,
   CreateCategory,
   CreateLoan,
+  CreateObligation,
   CreateTransaction,
   LedgerTransaction,
   Loan,
+  Obligation,
   UpdateLoan,
+  UpdateObligation,
 } from '../models/ledger.models';
 import { LedgerRepository } from './ledger.repository';
 
@@ -20,6 +23,7 @@ export class HttpLedgerRepository extends LedgerRepository {
   private readonly categoryState = signal<readonly Category[]>([]);
   private readonly transactionState = signal<readonly LedgerTransaction[]>([]);
   private readonly loanState = signal<readonly Loan[]>([]);
+  private readonly obligationState = signal<readonly Obligation[]>([]);
   private readonly isLoadingState = signal(false);
   private readonly hasLoadedState = signal(false);
   private loadRequestId = 0;
@@ -29,6 +33,7 @@ export class HttpLedgerRepository extends LedgerRepository {
   override readonly categories: Signal<readonly Category[]> = this.categoryState.asReadonly();
   override readonly transactions: Signal<readonly LedgerTransaction[]> = this.transactionState.asReadonly();
   override readonly loans: Signal<readonly Loan[]> = this.loanState.asReadonly();
+  override readonly obligations: Signal<readonly Obligation[]> = this.obligationState.asReadonly();
 
   override load(): void {
     const headers = this.authHeaders();
@@ -39,6 +44,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       this.categoryState.set([]);
       this.transactionState.set([]);
       this.loanState.set([]);
+      this.obligationState.set([]);
       this.hasLoadedState.set(false);
       this.isLoadingState.set(false);
       return;
@@ -50,8 +56,9 @@ export class HttpLedgerRepository extends LedgerRepository {
       categories: this.http.get<readonly Category[]>(`${this.apiUrl}/categories`, { headers }),
       transactions: this.http.get<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions`, { headers }),
       loans: this.http.get<readonly Loan[]>(`${this.apiUrl}/loans`, { headers }),
+      obligations: this.http.get<readonly Obligation[]>(`${this.apiUrl}/obligations`, { headers }),
     }).subscribe({
-      next: ({ categories, transactions, loans }) => {
+      next: ({ categories, transactions, loans, obligations }) => {
         if (requestId !== this.loadRequestId) {
           return;
         }
@@ -59,6 +66,7 @@ export class HttpLedgerRepository extends LedgerRepository {
         this.categoryState.set(categories ?? []);
         this.transactionState.set(transactions ?? []);
         this.loanState.set(loans ?? []);
+        this.obligationState.set(obligations ?? []);
         this.hasLoadedState.set(true);
       },
       error: () => {
@@ -142,6 +150,43 @@ export class HttpLedgerRepository extends LedgerRepository {
     });
   }
 
+  override addObligation(obligation: CreateObligation): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.post<Obligation>(`${this.apiUrl}/obligations`, obligation, { headers }).subscribe((created) => {
+      this.obligationState.update((obligations) => [created, ...obligations]);
+    });
+  }
+
+  override updateObligation(obligation: UpdateObligation): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http
+      .put<Obligation>(`${this.apiUrl}/obligations/${obligation.id}`, obligation, { headers })
+      .subscribe((updated) => {
+        this.obligationState.update((obligations) =>
+          obligations.map((item) => (item.id === updated.id ? updated : item)),
+        );
+      });
+  }
+
+  override removeObligation(obligationId: string): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.delete<void>(`${this.apiUrl}/obligations/${obligationId}`, { headers }).subscribe(() => {
+      this.obligationState.update((obligations) => obligations.filter((obligation) => obligation.id !== obligationId));
+    });
+  }
+
   override addCategory(category: CreateCategory): void {
     const headers = this.authHeaders();
     if (!headers) {
@@ -185,6 +230,18 @@ export class HttpLedgerRepository extends LedgerRepository {
 
     this.http.get<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions`, { headers }).subscribe((transactions) => {
       this.transactionState.set(transactions ?? []);
+    });
+  }
+
+  private loadObligations(): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      this.obligationState.set([]);
+      return;
+    }
+
+    this.http.get<readonly Obligation[]>(`${this.apiUrl}/obligations`, { headers }).subscribe((obligations) => {
+      this.obligationState.set(obligations ?? []);
     });
   }
 

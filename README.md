@@ -18,7 +18,7 @@ The Docker Compose stack runs:
 - `frontend` - nginx container that serves the Angular app on `http://localhost:3000` and proxies `/api/*` to the gateway.
 - `api-gateway` - public backend entrypoint on `http://localhost:8080`.
 - `auth-service` - users, sessions, admin user management, and default category seeding.
-- `ledger-service` - categories, transactions, loans, and loan-payment balance updates.
+- `ledger-service` - categories, transactions, loans, obligations, and loan-payment balance updates.
 - `postgres` - PostgreSQL 16 database, exposed locally on `localhost:5433`.
 
 ## Self-Hosted Quick Start
@@ -53,12 +53,12 @@ Check the API gateway:
 curl http://localhost:8080/health
 ```
 
-Default accounts are created from `.env`:
+The default admin account is created from `.env`:
 
 - `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD`
-- `DEFAULT_USER_EMAIL` / `DEFAULT_USER_PASSWORD` when `DEFAULT_USER_ENABLED=true`
+- `APP_LANGUAGE` controls the default interface language and seeded category names. Supported values are `RU` and `EN`; any other value falls back to `RU`.
 
-If default users already exist in the database, startup keeps the existing accounts and only ensures their default categories exist.
+If the default admin already exists in the database, startup keeps the existing account credentials and only ensures its default categories exist.
 
 ## Development
 
@@ -101,7 +101,7 @@ The production compose file:
 - keeps PostgreSQL private to the Docker network;
 - keeps `api-gateway`, `auth-service`, and `ledger-service` internal;
 - uses `restart: unless-stopped`;
-- uses the same `.env` file for credentials and initial users.
+- uses the same `.env` file for credentials and the initial admin.
 
 ## Production Notes
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"strings"
 
 	"ledger/backend/internal/authapp"
 	"ledger/backend/internal/domain"
@@ -19,7 +18,7 @@ func main() {
 	}
 	defer db.Close()
 
-	store := authapp.NewPostgresStore(db)
+	store := authapp.NewPostgresStore(db, appLanguage())
 	if err := store.Migrate(ctx, defaultUsers()); err != nil {
 		log.Fatalf("migrate auth schema: %v", err)
 	}
@@ -31,8 +30,12 @@ func main() {
 	}
 }
 
+func appLanguage() domain.AppLanguage {
+	return domain.NormalizeLanguage(platform.Env("APP_LANGUAGE", "RU"))
+}
+
 func defaultUsers() []authapp.DefaultUser {
-	users := []authapp.DefaultUser{
+	return []authapp.DefaultUser{
 		{
 			ID: platform.Env("DEFAULT_ADMIN_ID", "admin-user"),
 			User: domain.CreateUser{
@@ -43,18 +46,4 @@ func defaultUsers() []authapp.DefaultUser {
 			},
 		},
 	}
-
-	if strings.EqualFold(platform.Env("DEFAULT_USER_ENABLED", "true"), "true") {
-		users = append(users, authapp.DefaultUser{
-			ID: platform.Env("DEFAULT_USER_ID", "regular-user"),
-			User: domain.CreateUser{
-				Name:     platform.Env("DEFAULT_USER_NAME", "User"),
-				Email:    platform.Env("DEFAULT_USER_EMAIL", "user@ledger.local"),
-				Password: platform.Env("DEFAULT_USER_PASSWORD", "user"),
-				Role:     domain.RoleUser,
-			},
-		})
-	}
-
-	return users
 }

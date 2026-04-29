@@ -26,12 +26,41 @@ func (s *fakeAuthStore) ValidateSession(_ context.Context, token string) (domain
 	}
 	return domain.User{}, ErrInvalidCredentials
 }
+func (s *fakeAuthStore) UpdateProfile(_ context.Context, _ string, profile domain.UpdateProfile) (domain.User, error) {
+	s.admin.Name = profile.Name
+	s.admin.Email = profile.Email
+	s.admin.AvatarURL = profile.AvatarURL
+	return s.admin, nil
+}
+func (s *fakeAuthStore) UpdatePassword(context.Context, string, domain.UpdatePassword) error {
+	return nil
+}
 func (s *fakeAuthStore) ListUsers(context.Context) ([]domain.User, error) {
 	return []domain.User{s.admin}, nil
 }
 func (s *fakeAuthStore) CreateUser(_ context.Context, user domain.CreateUser) (domain.User, error) {
 	s.created = domain.User{ID: "created-user", Name: user.Name, Email: user.Email, Role: user.Role, IsActive: true}
 	return s.created, nil
+}
+
+func TestUpdateProfileReturnsUpdatedUser(t *testing.T) {
+	store := &fakeAuthStore{
+		admin: domain.User{ID: "admin-user", Name: "Admin", Email: "admin@ledger.local", Role: domain.RoleAdmin, IsActive: true},
+	}
+	service := NewService(store)
+	body, _ := json.Marshal(domain.UpdateProfile{Name: "Owner", Email: "owner@ledger.local", AvatarURL: "data:image/png;base64,a"})
+	request := httptest.NewRequest(http.MethodPatch, "/api/auth/profile", bytes.NewReader(body))
+	request.Header.Set("Authorization", "Bearer admin-token")
+	response := httptest.NewRecorder()
+
+	service.Routes().ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", response.Code, response.Body.String())
+	}
+	if store.admin.Name != "Owner" || store.admin.Email != "owner@ledger.local" || store.admin.AvatarURL == "" {
+		t.Fatalf("expected profile update, got %+v", store.admin)
+	}
 }
 func (s *fakeAuthStore) DeleteUser(context.Context, string) error { return nil }
 func (s *fakeAuthStore) ToggleUser(context.Context, string) (domain.User, error) {

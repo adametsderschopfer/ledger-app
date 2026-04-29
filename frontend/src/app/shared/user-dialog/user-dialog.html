@@ -1,9 +1,9 @@
-<h2 mat-dialog-title>Добавить пользователя</h2>
+<h2 mat-dialog-title>{{ i18n.t('actions.addUser') }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="dialog-grid">
     <mat-form-field appearance="outline">
-      <mat-label>Имя</mat-label>
+      <mat-label>{{ i18n.t('server.name') }}</mat-label>
       <input matInput formControlName="name" autocomplete="name" />
     </mat-form-field>
 
@@ -16,12 +16,12 @@
       <mat-label>{{ i18n.t('auth.password') }}</mat-label>
       <input matInput formControlName="password" type="password" autocomplete="new-password" />
       @if (form.controls.password.hasError('minlength')) {
-        <mat-error>Минимум 4 символа</mat-error>
+        <mat-error>{{ i18n.t('validation.minPassword') }}</mat-error>
       }
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Роль</mat-label>
+      <mat-label>{{ i18n.t('server.role') }}</mat-label>
       <mat-select formControlName="role">
         <mat-option value="user">{{ i18n.t('auth.user') }}</mat-option>
         <mat-option value="admin">{{ i18n.t('auth.admin') }}</mat-option>
@@ -32,5 +32,5 @@
 
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close type="button">{{ i18n.t('actions.cancel') }}</button>
-  <button mat-flat-button type="button" (click)="save()">Добавить</button>
+  <button mat-flat-button type="button" (click)="save()">{{ i18n.t('actions.addUser') }}</button>
 </mat-dialog-actions>

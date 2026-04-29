@@ -90,7 +90,11 @@ export class Statistics {
     return dates[0] ?? '';
   });
   readonly activeDays = computed(() => new Set(this.ledger.transactions().map((transaction) => transaction.date)).size);
-  readonly activeDaysLabel = computed(() => plural(this.activeDays(), 'активный день', 'активных дня', 'активных дней'));
+  readonly activeDaysLabel = computed(() =>
+    this.i18n.language() === 'EN'
+      ? `${this.activeDays() === 1 ? 'active day' : 'active days'}`
+      : plural(this.activeDays(), 'активный день', 'активных дня', 'активных дней'),
+  );
   readonly averageDailyExpense = computed(() => {
     const days = Math.max(1, daysBetween(this.firstTransactionDate(), todayKey()));
     return this.totalExpense() / days;
@@ -111,37 +115,37 @@ export class Statistics {
 
   readonly kpis = computed<readonly KpiCard[]>(() => [
     {
-      label: 'Поступления',
+      label: this.i18n.t('transactions.income'),
       value: this.ledger.money(this.totalIncome()),
-      helper: 'За весь период учета',
+      helper: this.i18n.t('stats.periodHelper'),
       icon: 'south_west',
       tone: 'income',
     },
     {
-      label: 'Расходы',
+      label: this.i18n.t('transactions.expense'),
       value: this.ledger.money(this.totalExpense()),
-      helper: `${this.ledger.money(this.averageDailyExpense())} в среднем в день`,
+      helper: `${this.ledger.money(this.averageDailyExpense())} ${this.i18n.t('stats.averageDay')}`,
       icon: 'north_east',
       tone: 'expense',
     },
     {
-      label: 'Чистый результат',
+      label: this.i18n.t('stats.netResult'),
       value: this.ledger.money(this.netBalance()),
-      helper: `${this.savingsRate()}% от поступлений остается`,
+      helper: `${this.savingsRate()}% ${this.i18n.t('stats.savingsHelper')}`,
       icon: 'account_balance_wallet',
       tone: 'balance',
     },
     {
-      label: 'Кредитная нагрузка',
+      label: this.i18n.t('stats.loanPressure'),
       value: this.ledger.money(this.monthlyDebtPressure()),
-      helper: `${this.loanPayoffShare()}% кредитов погашено`,
+      helper: `${this.loanPayoffShare()}% ${this.i18n.t('stats.loanPayoffHelper')}`,
       icon: 'credit_score',
       tone: 'neutral',
     },
   ]);
 
   readonly monthStats = computed<readonly MonthStat[]>(() => {
-    const months = recentMonths(monthsInTrend);
+    const months = recentMonths(monthsInTrend, this.i18n.locale());
     const grouped = new Map<string, { income: number; expense: number }>();
 
     for (const transaction of this.ledger.transactions()) {
@@ -197,7 +201,7 @@ export class Statistics {
   readonly expenseCategories = computed<readonly CategoryStat[]>(() => categoryBreakdown(this.ledger.transactions(), 'expense', this.ledger));
   readonly incomeCategories = computed<readonly CategoryStat[]>(() => categoryBreakdown(this.ledger.transactions(), 'income', this.ledger));
   readonly weekdays = computed<readonly WeekdayStat[]>(() => {
-    const labels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const labels = this.i18n.language() === 'EN' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     const values = labels.map((label) => ({ label, amount: 0, count: 0, intensity: 0 }));
 
     for (const transaction of this.ledger.transactions()) {
@@ -250,10 +254,10 @@ export class Statistics {
 
     return [
       expenseLeader
-        ? `${expenseLeader.name} занимает ${expenseLeader.share}% расходов.`
-        : 'Расходы еще не распределены по категориям.',
-      bestMonth ? `Лучший месяц по балансу: ${bestMonth.label}, ${this.ledger.money(bestMonth.balance)}.` : '',
-      `${activeDays} ${this.activeDaysLabel()} в журнале операций.`,
+        ? `${expenseLeader.name} ${this.i18n.t('stats.expenseLeader')} ${expenseLeader.share}% ${this.i18n.t('transactions.expense').toLowerCase()}.`
+        : this.i18n.t('stats.expensesUncategorized'),
+      bestMonth ? `${this.i18n.t('stats.bestMonth')}: ${bestMonth.label}, ${this.ledger.money(bestMonth.balance)}.` : '',
+      `${activeDays} ${this.activeDaysLabel()} ${this.i18n.t('stats.activeDaysInsight')}`,
     ].filter(Boolean);
   });
 
@@ -322,8 +326,8 @@ function categoryBreakdown(
     });
 }
 
-function recentMonths(count: number): readonly { key: string; label: string }[] {
-  const formatter = new Intl.DateTimeFormat('ru-RU', { month: 'short' });
+function recentMonths(count: number, locale: string): readonly { key: string; label: string }[] {
+  const formatter = new Intl.DateTimeFormat(locale, { month: 'short' });
   const now = new Date();
   return Array.from({ length: count }, (_, index) => {
     const date = new Date(now.getFullYear(), now.getMonth() - count + index + 1, 1);

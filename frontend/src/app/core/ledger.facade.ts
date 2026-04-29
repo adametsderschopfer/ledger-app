@@ -4,11 +4,14 @@ import {
   Category,
   CreateCategory,
   CreateLoan,
+  CreateObligation,
   CreateTransaction,
   DailyExpenseDraft,
   LedgerTransaction,
   Loan,
+  Obligation,
   UpdateLoan,
+  UpdateObligation,
 } from './models/ledger.models';
 import { LedgerRepository } from './repositories/ledger.repository';
 
@@ -27,6 +30,15 @@ export interface TransactionDayGroup {
   transactions: readonly LedgerTransaction[];
 }
 
+export interface UpcomingObligation {
+  id: string;
+  name: string;
+  amount: number;
+  dueDay: number;
+  source: 'loan' | 'custom';
+  categoryId?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class LedgerFacade {
   private readonly repository = inject(LedgerRepository);
@@ -35,11 +47,16 @@ export class LedgerFacade {
   readonly categories = this.repository.categories;
   readonly transactions = this.repository.transactions;
   readonly loans = this.repository.loans;
+  readonly obligations = this.repository.obligations;
   readonly isLoading = this.repository.isLoading;
   readonly hasLoaded = this.repository.hasLoaded;
 
-  readonly incomeCategories = computed(() => this.categories().filter((category) => category.type === 'income'));
-  readonly expenseCategories = computed(() => this.categories().filter((category) => category.type === 'expense'));
+  readonly incomeCategories = computed(() =>
+    this.categories().filter((category) => category.type === 'income'),
+  );
+  readonly expenseCategories = computed(() =>
+    this.categories().filter((category) => category.type === 'expense'),
+  );
   readonly currentMonthTransactions = computed(() => {
     const now = new Date();
     return this.transactions().filter((transaction) => {
@@ -48,14 +65,44 @@ export class LedgerFacade {
     });
   });
 
-  readonly monthlyIncome = computed(() => sumTransactions(this.currentMonthTransactions(), 'income'));
-  readonly monthlyExpense = computed(() => sumTransactions(this.currentMonthTransactions(), 'expense'));
+  readonly monthlyIncome = computed(() =>
+    sumTransactions(this.currentMonthTransactions(), 'income'),
+  );
+  readonly monthlyExpense = computed(() =>
+    sumTransactions(this.currentMonthTransactions(), 'expense'),
+  );
   readonly monthlyBalance = computed(() => this.monthlyIncome() - this.monthlyExpense());
   readonly totalLoanDebt = computed(() =>
     this.loans().reduce((total, loan) => total + loan.remainingAmount, 0),
   );
+  readonly activeLoans = computed(() => this.loans().filter((loan) => loan.remainingAmount > 0));
   readonly upcomingLoanPayments = computed(() =>
-    [...this.loans()].sort((first, second) => first.dueDay - second.dueDay),
+    [...this.activeLoans()].sort((first, second) => first.dueDay - second.dueDay),
+  );
+  readonly upcomingObligations = computed<readonly UpcomingObligation[]>(() =>
+    [
+      ...this.activeLoans().map(
+        (loan): UpcomingObligation => ({
+          id: loan.id,
+          name: loan.name,
+          amount: Math.min(loan.monthlyPayment, loan.remainingAmount),
+          dueDay: loan.dueDay,
+          source: 'loan',
+        }),
+      ),
+      ...this.obligations().map(
+        (obligation): UpcomingObligation => ({
+          id: obligation.id,
+          name: obligation.name,
+          amount: obligation.amount,
+          dueDay: obligation.dueDay,
+          categoryId: obligation.categoryId,
+          source: 'custom',
+        }),
+      ),
+    ].sort(
+      (first, second) => first.dueDay - second.dueDay || first.name.localeCompare(second.name),
+    ),
   );
   readonly recentTransactions = computed(() =>
     [...this.transactions()]
@@ -64,18 +111,27 @@ export class LedgerFacade {
   );
   readonly allTransactionGroups = computed(() => groupTransactionsByDay(this.transactions()));
   readonly incomeTransactionGroups = computed(() =>
-    groupTransactionsByDay(this.transactions().filter((transaction) => transaction.type === 'income')),
+    groupTransactionsByDay(
+      this.transactions().filter((transaction) => transaction.type === 'income'),
+    ),
   );
   readonly expenseTransactionGroups = computed(() =>
-    groupTransactionsByDay(this.transactions().filter((transaction) => transaction.type === 'expense')),
+    groupTransactionsByDay(
+      this.transactions().filter((transaction) => transaction.type === 'expense'),
+    ),
   );
   readonly expenseBreakdown = computed(() => {
-    const expenses = this.currentMonthTransactions().filter((transaction) => transaction.type === 'expense');
+    const expenses = this.currentMonthTransactions().filter(
+      (transaction) => transaction.type === 'expense',
+    );
     const total = expenses.reduce((sum, transaction) => sum + transaction.amount, 0);
     const byCategory = new Map<string, number>();
 
     expenses.forEach((transaction) => {
-      byCategory.set(transaction.categoryId, (byCategory.get(transaction.categoryId) ?? 0) + transaction.amount);
+      byCategory.set(
+        transaction.categoryId,
+        (byCategory.get(transaction.categoryId) ?? 0) + transaction.amount,
+      );
     });
 
     return [...byCategory.entries()]
@@ -122,6 +178,18 @@ export class LedgerFacade {
     this.repository.removeLoan(loanId);
   }
 
+  addObligation(obligation: CreateObligation): void {
+    this.repository.addObligation(obligation);
+  }
+
+  updateObligation(obligation: UpdateObligation): void {
+    this.repository.updateObligation(obligation);
+  }
+
+  removeObligation(obligationId: string): void {
+    this.repository.removeObligation(obligationId);
+  }
+
   recordLoanPayment(loanId: string): void {
     const loan = this.loanById(loanId);
 
@@ -139,6 +207,25 @@ export class LedgerFacade {
     });
   }
 
+  recordObligationPayment(obligation: UpcomingObligation): void {
+    if (obligation.source === 'loan') {
+      this.recordLoanPayment(obligation.id);
+      return;
+    }
+
+    if (!obligation.categoryId || obligation.amount <= 0) {
+      return;
+    }
+
+    this.repository.addTransaction({
+      type: 'expense',
+      date: toInputDate(new Date()),
+      categoryId: obligation.categoryId,
+      title: `${this.i18n.t('obligation.paymentTitle')}: ${obligation.name}`,
+      amount: obligation.amount,
+    });
+  }
+
   addCategory(category: CreateCategory): void {
     this.repository.addCategory(category);
   }
@@ -151,7 +238,7 @@ export class LedgerFacade {
     return (
       this.categories().find((category) => category.id === categoryId) ?? {
         id: 'unknown',
-        name: 'Без категории',
+        name: this.i18n.t('category.unknown'),
         type: 'expense',
         color: '#5f6368',
       }
@@ -160,6 +247,10 @@ export class LedgerFacade {
 
   loanById(loanId: string | undefined): Loan | undefined {
     return this.loans().find((loan) => loan.id === loanId);
+  }
+
+  obligationById(obligationId: string | undefined): Obligation | undefined {
+    return this.obligations().find((obligation) => obligation.id === obligationId);
   }
 
   categoryLinksToLoan(categoryId: string): boolean {
@@ -186,13 +277,18 @@ export function toInputDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function sumTransactions(transactions: readonly LedgerTransaction[], type: 'income' | 'expense'): number {
+function sumTransactions(
+  transactions: readonly LedgerTransaction[],
+  type: 'income' | 'expense',
+): number {
   return transactions
     .filter((transaction) => transaction.type === type)
     .reduce((total, transaction) => total + transaction.amount, 0);
 }
 
-function groupTransactionsByDay(transactions: readonly LedgerTransaction[]): readonly TransactionDayGroup[] {
+function groupTransactionsByDay(
+  transactions: readonly LedgerTransaction[],
+): readonly TransactionDayGroup[] {
   const groups = new Map<string, LedgerTransaction[]>();
 
   [...transactions]

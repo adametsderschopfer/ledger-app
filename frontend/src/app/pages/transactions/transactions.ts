@@ -75,7 +75,8 @@ export class Transactions {
       .filter((transaction) => {
         const category = this.ledger.categoryById(transaction.categoryId);
         const loan = this.ledger.loanById(transaction.loanId);
-        const searchableText = `${transaction.title} ${category.name} ${loan?.name ?? ''}`.toLowerCase();
+        const searchableText =
+          `${transaction.title} ${category.name} ${loan?.name ?? ''}`.toLowerCase();
 
         return (
           (type === 'all' || transaction.type === type) &&
@@ -88,8 +89,12 @@ export class Transactions {
       .sort((first, second) => second.date.localeCompare(first.date));
   });
 
-  readonly visibleTransactions = computed(() => this.filteredTransactions().slice(0, this.visibleLimit()));
-  readonly visibleGroups = computed(() => this.ledger.transactionGroups(this.visibleTransactions()));
+  readonly visibleTransactions = computed(() =>
+    this.filteredTransactions().slice(0, this.visibleLimit()),
+  );
+  readonly visibleGroups = computed(() =>
+    this.ledger.transactionGroups(this.visibleTransactions()),
+  );
   readonly startDateValue = computed(() => parseInputDate(this.startDate()));
   readonly endDateValue = computed(() => parseInputDate(this.endDate()));
   readonly hasMore = computed(() => this.visibleLimit() < this.filteredTransactions().length);
@@ -148,7 +153,7 @@ export class Transactions {
       data: {
         mode: 'all',
         categories: this.ledger.categories(),
-        loans: this.ledger.loans(),
+        loans: this.ledger.activeLoans(),
       },
     });
 
@@ -168,7 +173,11 @@ export class Transactions {
     const type = parseTypeFilter(event.value);
     this.typeFilter.set(type);
 
-    if (this.categoryFilter() !== 'all' && this.ledger.categoryById(this.categoryFilter()).type !== type && type !== 'all') {
+    if (
+      this.categoryFilter() !== 'all' &&
+      this.ledger.categoryById(this.categoryFilter()).type !== type &&
+      type !== 'all'
+    ) {
       this.categoryFilter.set('all');
     }
 

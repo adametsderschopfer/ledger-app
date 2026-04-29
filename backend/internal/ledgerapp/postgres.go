@@ -43,6 +43,17 @@ CREATE TABLE IF NOT EXISTS loans (
   PRIMARY KEY (user_id, id)
 );
 
+CREATE TABLE IF NOT EXISTS obligations (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  amount NUMERIC NOT NULL CHECK (amount > 0),
+  due_day INTEGER NOT NULL CHECK (due_day >= 1 AND due_day <= 31),
+  category_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, id)
+);
+
 CREATE TABLE IF NOT EXISTS transactions (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   id TEXT NOT NULL,
@@ -171,6 +182,81 @@ func (s *PostgresStore) CreateTransactions(ctx context.Context, userID string, t
 	}
 
 	return created, nil
+}
+
+func (s *PostgresStore) ListObligations(ctx context.Context, userID string) ([]domain.Obligation, error) {
+	rows, err := s.db.QueryContext(ctx, `
+SELECT id, name, amount, due_day, category_id
+FROM obligations
+WHERE user_id = $1
+ORDER BY due_day, created_at DESC
+`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	obligations := make([]domain.Obligation, 0)
+	for rows.Next() {
+		var obligation domain.Obligation
+		obligation.UserID = userID
+		if err := rows.Scan(&obligation.ID, &obligation.Name, &obligation.Amount, &obligation.DueDay, &obligation.CategoryID); err != nil {
+			return nil, err
+		}
+		obligations = append(obligations, obligation)
+	}
+
+	return obligations, rows.Err()
+}
+
+func (s *PostgresStore) CreateObligation(ctx context.Context, userID string, obligation domain.CreateObligation) (domain.Obligation, error) {
+	created := domain.Obligation{
+		ID:         platform.NewID("obligation"),
+		UserID:     userID,
+		Name:       obligation.Name,
+		Amount:     obligation.Amount,
+		DueDay:     obligation.DueDay,
+		CategoryID: obligation.CategoryID,
+	}
+	err := s.db.QueryRowContext(ctx, `
+INSERT INTO obligations (user_id, id, name, amount, due_day, category_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, name, amount, due_day, category_id
+`, userID, created.ID, created.Name, created.Amount, created.DueDay, created.CategoryID).Scan(
+		&created.ID, &created.Name, &created.Amount, &created.DueDay, &created.CategoryID,
+	)
+	return created, err
+}
+
+func (s *PostgresStore) UpdateObligation(ctx context.Context, userID string, obligation domain.UpdateObligation) (domain.Obligation, error) {
+	var updated domain.Obligation
+	updated.UserID = userID
+	err := s.db.QueryRowContext(ctx, `
+UPDATE obligations
+SET name = $3,
+    amount = $4,
+    due_day = $5,
+    category_id = $6
+WHERE user_id = $1 AND id = $2
+RETURNING id, name, amount, due_day, category_id
+`, userID, obligation.ID, obligation.Name, obligation.Amount, obligation.DueDay, obligation.CategoryID).Scan(
+		&updated.ID, &updated.Name, &updated.Amount, &updated.DueDay, &updated.CategoryID,
+	)
+	if err != nil {
+		return domain.Obligation{}, ErrNotFound
+	}
+	return updated, nil
+}
+
+func (s *PostgresStore) DeleteObligation(ctx context.Context, userID, obligationID string) error {
+	result, err := s.db.ExecContext(ctx, `DELETE FROM obligations WHERE user_id = $1 AND id = $2`, userID, obligationID)
+	if err != nil {
+		return err
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *PostgresStore) ListLoans(ctx context.Context, userID string) ([]domain.Loan, error) {

@@ -17,7 +17,7 @@
       <div class="ledger-skeleton-row"></div>
     </div>
   } @else if (ledger.loans().length === 0) {
-    <app-empty-state icon="account_balance" title="Кредитов пока нет" text="Добавьте кредит, чтобы отслеживать остаток, день платежа и прогресс погашения." />
+    <app-empty-state icon="account_balance" [title]="i18n.t('dashboard.emptyLoans')" [text]="i18n.t('dashboard.emptyLoansText')" />
   } @else {
     <div class="table-shell">
       <table mat-table [dataSource]="ledger.loans()" class="ledger-table">

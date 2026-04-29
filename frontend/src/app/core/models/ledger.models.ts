@@ -28,6 +28,14 @@ export interface Loan {
   dueDay: number;
 }
 
+export interface Obligation {
+  id: string;
+  name: string;
+  amount: number;
+  dueDay: number;
+  categoryId: string;
+}
+
 export interface CreateTransaction {
   type: TransactionType;
   date: string;
@@ -43,6 +51,17 @@ export interface CreateLoan {
   remainingAmount?: number;
   monthlyPayment: number;
   dueDay: number;
+}
+
+export interface CreateObligation {
+  name: string;
+  amount: number;
+  dueDay: number;
+  categoryId: string;
+}
+
+export interface UpdateObligation extends CreateObligation {
+  id: string;
 }
 
 export interface UpdateLoan extends CreateLoan {

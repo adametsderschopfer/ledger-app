@@ -12,7 +12,7 @@ import { LedgerFacade, TransactionDayGroup } from '../../core/ledger.facade';
 })
 export class TransactionGroups {
   readonly groups = input.required<readonly TransactionDayGroup[]>();
-  readonly emptyText = input('Операций пока нет.');
+  readonly emptyText = input('');
   readonly isLoading = input(false);
   readonly hasLoaded = input(true);
   readonly ledger = inject(LedgerFacade);
@@ -28,6 +28,10 @@ export class TransactionGroups {
   }
 
   operationCount(count: number): string {
+    if (this.i18n.language() === 'EN') {
+      return `${count} ${count === 1 ? 'transaction' : 'transactions'}`;
+    }
+
     return `${count} ${count === 1 ? 'операция' : 'операций'}`;
   }
 }

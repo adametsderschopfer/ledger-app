@@ -14,11 +14,12 @@ import (
 type fakeAuthenticator struct{}
 
 func (fakeAuthenticator) Authenticate(context.Context, string) (domain.User, error) {
-	return domain.User{ID: "user-1", Name: "User", Email: "user@ledger.local", Role: domain.RoleUser, IsActive: true}, nil
+	return domain.User{ID: "user-1", Name: "User", Email: "owner@ledger.local", Role: domain.RoleUser, IsActive: true}, nil
 }
 
 type fakeLedgerStore struct {
 	transactions []domain.LedgerTransaction
+	obligations  []domain.Obligation
 	remaining    float64
 }
 
@@ -51,6 +52,18 @@ func (s *fakeLedgerStore) CreateTransactions(ctx context.Context, userID string,
 	}
 	return created, nil
 }
+func (s *fakeLedgerStore) ListObligations(context.Context, string) ([]domain.Obligation, error) {
+	return s.obligations, nil
+}
+func (s *fakeLedgerStore) CreateObligation(_ context.Context, userID string, obligation domain.CreateObligation) (domain.Obligation, error) {
+	created := domain.Obligation{ID: "obligation-1", UserID: userID, Name: obligation.Name, Amount: obligation.Amount, DueDay: obligation.DueDay, CategoryID: obligation.CategoryID}
+	s.obligations = append([]domain.Obligation{created}, s.obligations...)
+	return created, nil
+}
+func (s *fakeLedgerStore) UpdateObligation(_ context.Context, userID string, obligation domain.UpdateObligation) (domain.Obligation, error) {
+	return domain.Obligation{ID: obligation.ID, UserID: userID, Name: obligation.Name, Amount: obligation.Amount, DueDay: obligation.DueDay, CategoryID: obligation.CategoryID}, nil
+}
+func (s *fakeLedgerStore) DeleteObligation(context.Context, string, string) error { return nil }
 func (s *fakeLedgerStore) ListLoans(context.Context, string) ([]domain.Loan, error) {
 	return []domain.Loan{{ID: "loan-1", RemainingAmount: s.remaining}}, nil
 }
@@ -79,5 +92,31 @@ func TestTransactionBatchCreatesItemsAndAppliesLoanPayment(t *testing.T) {
 	}
 	if store.remaining != 7500 {
 		t.Fatalf("expected remaining amount 7500, got %v", store.remaining)
+	}
+}
+
+func TestCreateObligation(t *testing.T) {
+	store := &fakeLedgerStore{remaining: 10_000}
+	service := NewService(store, fakeAuthenticator{})
+	payload, _ := json.Marshal(domain.CreateObligation{
+		Name:       "Интернет",
+		Amount:     1200,
+		DueDay:     15,
+		CategoryID: "utilities",
+	})
+	request := httptest.NewRequest(http.MethodPost, "/api/ledger/obligations", bytes.NewReader(payload))
+	request.Header.Set("Authorization", "Bearer token")
+	response := httptest.NewRecorder()
+
+	service.Routes().ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d: %s", response.Code, response.Body.String())
+	}
+	if len(store.obligations) != 1 {
+		t.Fatalf("expected one obligation, got %d", len(store.obligations))
+	}
+	if store.obligations[0].CategoryID != "utilities" {
+		t.Fatalf("expected utilities category, got %q", store.obligations[0].CategoryID)
 	}
 }

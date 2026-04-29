@@ -1,7 +1,14 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, Signal, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
-import { AppUser, AuthSession, CreateUser, LoginCredentials } from './auth.models';
+import {
+  AppUser,
+  AuthSession,
+  CreateUser,
+  LoginCredentials,
+  UpdatePassword,
+  UpdateProfile,
+} from './auth.models';
 import { AuthRepository } from './auth.repository';
 
 @Injectable()
@@ -89,6 +96,34 @@ export class HttpAuthRepository extends AuthRepository {
     }
   }
 
+  override updateProfile(profile: UpdateProfile): Observable<boolean> {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return of(false);
+    }
+
+    return this.http.patch<AppUser>(`${this.apiUrl}/profile`, profile, { headers }).pipe(
+      tap((user) => this.setSession(user, this.token() ?? '')),
+      tap((user) =>
+        this.usersState.update((users) => users.map((item) => (item.id === user.id ? user : item))),
+      ),
+      map(() => true),
+      catchError(() => of(false)),
+    );
+  }
+
+  override updatePassword(password: UpdatePassword): Observable<boolean> {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return of(false);
+    }
+
+    return this.http.patch<void>(`${this.apiUrl}/password`, password, { headers }).pipe(
+      map(() => true),
+      catchError(() => of(false)),
+    );
+  }
+
   override addUser(user: CreateUser): void {
     const headers = this.authHeaders();
     if (!headers) {
@@ -117,9 +152,13 @@ export class HttpAuthRepository extends AuthRepository {
       return;
     }
 
-    this.http.patch<AppUser>(`/api/server/users/${userId}/status`, {}, { headers }).subscribe((updated) => {
-      this.usersState.update((users) => users.map((user) => (user.id === userId ? updated : user)));
-    });
+    this.http
+      .patch<AppUser>(`/api/server/users/${userId}/status`, {}, { headers })
+      .subscribe((updated) => {
+        this.usersState.update((users) =>
+          users.map((user) => (user.id === userId ? updated : user)),
+        );
+      });
   }
 
   private authHeaders(): HttpHeaders | undefined {

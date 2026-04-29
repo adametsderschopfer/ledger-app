@@ -1,6 +1,12 @@
 import { Injectable, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { AppUser, CreateUser, LoginCredentials } from './auth.models';
+import {
+  AppUser,
+  CreateUser,
+  LoginCredentials,
+  UpdatePassword,
+  UpdateProfile,
+} from './auth.models';
 import { AuthRepository } from './auth.repository';
 
 @Injectable()
@@ -13,14 +19,6 @@ export class InMemoryAuthRepository extends AuthRepository {
       email: 'admin@ledger.local',
       password: 'admin',
       role: 'admin',
-      isActive: true,
-    },
-    {
-      id: 'regular-user',
-      name: 'Пользователь',
-      email: 'user@ledger.local',
-      password: 'user',
-      role: 'user',
       isActive: true,
     },
   ]);
@@ -74,6 +72,51 @@ export class InMemoryAuthRepository extends AuthRepository {
     ]);
   }
 
+  override updateProfile(profile: UpdateProfile): Observable<boolean> {
+    const currentUser = this.currentUserState();
+    if (!currentUser) {
+      return of(false);
+    }
+
+    const email = profile.email.trim().toLowerCase();
+    const isEmailUsed = this.usersState().some(
+      (user) => user.id !== currentUser.id && user.email.toLowerCase() === email,
+    );
+    if (!profile.name.trim() || !email || isEmailUsed) {
+      return of(false);
+    }
+
+    const updated = {
+      ...currentUser,
+      name: profile.name.trim(),
+      email,
+      avatarUrl: profile.avatarUrl.trim(),
+    };
+    this.usersState.update((users) =>
+      users.map((user) => (user.id === currentUser.id ? updated : user)),
+    );
+    this.currentUserState.set(updated);
+    return of(true);
+  }
+
+  override updatePassword(password: UpdatePassword): Observable<boolean> {
+    const currentUser = this.currentUserState();
+    if (
+      !currentUser ||
+      currentUser.password !== password.currentPassword ||
+      password.newPassword.length < 4
+    ) {
+      return of(false);
+    }
+
+    const updated = { ...currentUser, password: password.newPassword };
+    this.usersState.update((users) =>
+      users.map((user) => (user.id === currentUser.id ? updated : user)),
+    );
+    this.currentUserState.set(updated);
+    return of(true);
+  }
+
   override removeUser(userId: string): void {
     this.usersState.update((users) => users.filter((user) => user.id !== userId));
 
@@ -88,7 +131,10 @@ export class InMemoryAuthRepository extends AuthRepository {
       users.map((user) => (user.id === userId ? { ...user, isActive: !user.isActive } : user)),
     );
 
-    if (this.currentUserState()?.id === userId && !this.usersState().find((user) => user.id === userId)?.isActive) {
+    if (
+      this.currentUserState()?.id === userId &&
+      !this.usersState().find((user) => user.id === userId)?.isActive
+    ) {
       this.logout();
     }
   }

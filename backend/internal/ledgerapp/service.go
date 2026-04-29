@@ -19,6 +19,10 @@ type Store interface {
 	ListTransactions(ctx context.Context, userID string) ([]domain.LedgerTransaction, error)
 	CreateTransaction(ctx context.Context, userID string, transaction domain.CreateTransaction) (domain.LedgerTransaction, error)
 	CreateTransactions(ctx context.Context, userID string, transactions []domain.CreateTransaction) ([]domain.LedgerTransaction, error)
+	ListObligations(ctx context.Context, userID string) ([]domain.Obligation, error)
+	CreateObligation(ctx context.Context, userID string, obligation domain.CreateObligation) (domain.Obligation, error)
+	UpdateObligation(ctx context.Context, userID string, obligation domain.UpdateObligation) (domain.Obligation, error)
+	DeleteObligation(ctx context.Context, userID, obligationID string) error
 	ListLoans(ctx context.Context, userID string) ([]domain.Loan, error)
 	CreateLoan(ctx context.Context, userID string, loan domain.CreateLoan) (domain.Loan, error)
 	UpdateLoan(ctx context.Context, userID string, loan domain.UpdateLoan) (domain.Loan, error)
@@ -45,6 +49,10 @@ func (s *Service) Routes() http.Handler {
 	mux.HandleFunc("GET /api/ledger/transactions", s.transactions)
 	mux.HandleFunc("POST /api/ledger/transactions", s.transactions)
 	mux.HandleFunc("POST /api/ledger/transactions/batch", s.createTransactionBatch)
+	mux.HandleFunc("GET /api/ledger/obligations", s.obligations)
+	mux.HandleFunc("POST /api/ledger/obligations", s.obligations)
+	mux.HandleFunc("PUT /api/ledger/obligations/", s.updateObligation)
+	mux.HandleFunc("DELETE /api/ledger/obligations/", s.deleteObligation)
 	mux.HandleFunc("GET /api/ledger/loans", s.loans)
 	mux.HandleFunc("POST /api/ledger/loans", s.loans)
 	mux.HandleFunc("PUT /api/ledger/loans/", s.updateLoan)
@@ -157,6 +165,85 @@ func (s *Service) createTransactionBatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	platform.WriteJSON(w, http.StatusCreated, created)
+}
+
+func (s *Service) obligations(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.requireUser(w, r)
+	if !ok {
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		obligations, err := s.store.ListObligations(r.Context(), user.ID)
+		if err != nil {
+			platform.WriteError(w, http.StatusInternalServerError, "obligations could not be loaded")
+			return
+		}
+		platform.WriteJSON(w, http.StatusOK, obligations)
+	case http.MethodPost:
+		var payload domain.CreateObligation
+		if err := platform.ReadJSON(r, &payload); err != nil {
+			platform.WriteError(w, http.StatusBadRequest, "invalid obligation payload")
+			return
+		}
+		created, err := s.store.CreateObligation(r.Context(), user.ID, payload)
+		if err != nil {
+			platform.WriteError(w, http.StatusBadRequest, "obligation could not be created")
+			return
+		}
+		platform.WriteJSON(w, http.StatusCreated, created)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *Service) updateObligation(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.requireUser(w, r)
+	if !ok {
+		return
+	}
+
+	obligationID := strings.TrimPrefix(r.URL.Path, "/api/ledger/obligations/")
+	if obligationID == "" || strings.Contains(obligationID, "/") {
+		platform.WriteError(w, http.StatusBadRequest, "invalid obligation id")
+		return
+	}
+
+	var payload domain.UpdateObligation
+	if err := platform.ReadJSON(r, &payload); err != nil {
+		platform.WriteError(w, http.StatusBadRequest, "invalid obligation payload")
+		return
+	}
+	payload.ID = obligationID
+
+	updated, err := s.store.UpdateObligation(r.Context(), user.ID, payload)
+	if err != nil {
+		platform.WriteError(w, http.StatusNotFound, "obligation was not found")
+		return
+	}
+
+	platform.WriteJSON(w, http.StatusOK, updated)
+}
+
+func (s *Service) deleteObligation(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.requireUser(w, r)
+	if !ok {
+		return
+	}
+
+	obligationID := strings.TrimPrefix(r.URL.Path, "/api/ledger/obligations/")
+	if obligationID == "" || strings.Contains(obligationID, "/") {
+		platform.WriteError(w, http.StatusBadRequest, "invalid obligation id")
+		return
+	}
+
+	if err := s.store.DeleteObligation(r.Context(), user.ID, obligationID); err != nil {
+		platform.WriteError(w, http.StatusNotFound, "obligation was not found")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Service) loans(w http.ResponseWriter, r *http.Request) {

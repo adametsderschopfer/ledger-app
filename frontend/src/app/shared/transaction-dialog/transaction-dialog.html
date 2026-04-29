@@ -79,7 +79,7 @@
           @if (hasNoLoans()) {
             <mat-hint>{{ i18n.t('transactions.noLoansHint') }}</mat-hint>
           } @else if (form.controls.loanId.hasError('required')) {
-            <mat-error>Выберите кредит</mat-error>
+            <mat-error>{{ i18n.t('transactions.noCreditSelected') }}</mat-error>
           }
         </mat-form-field>
       }
