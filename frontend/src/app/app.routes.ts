@@ -17,6 +17,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/transactions/transactions').then((m) => m.Transactions),
   },
   {
+    path: 'statistics',
+    canMatch: [authenticatedGuard],
+    loadComponent: () => import('./pages/statistics/statistics').then((m) => m.Statistics),
+  },
+  {
     path: 'incomes',
     canMatch: [authenticatedGuard],
     loadComponent: () => import('./pages/incomes/incomes').then((m) => m.Incomes),

@@ -33,6 +33,7 @@ interface NavigationItem {
   labelKey:
     | 'nav.dashboard'
     | 'nav.transactions'
+    | 'nav.statistics'
     | 'nav.incomes'
     | 'nav.expenses'
     | 'nav.loans'
@@ -88,6 +89,7 @@ export class App {
     const items: readonly NavigationItem[] = [
       { labelKey: 'nav.dashboard', icon: 'dashboard', route: '/dashboard' },
       { labelKey: 'nav.transactions', icon: 'receipt_long', route: '/transactions' },
+      { labelKey: 'nav.statistics', icon: 'monitoring', route: '/statistics' },
       { labelKey: 'nav.incomes', icon: 'south_west', route: '/incomes' },
       { labelKey: 'nav.expenses', icon: 'north_east', route: '/expenses' },
       { labelKey: 'nav.loans', icon: 'account_balance', route: '/loans' },

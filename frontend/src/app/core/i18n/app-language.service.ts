@@ -66,6 +66,7 @@ export type TranslationKey =
   | 'nav.loans'
   | 'nav.server'
   | 'nav.settings'
+  | 'nav.statistics'
   | 'nav.transactions'
   | 'settings.categories'
   | 'settings.expenseCategories'
@@ -175,6 +176,7 @@ const translations: Record<TranslationKey, string> = {
   'nav.loans': 'Кредиты',
   'nav.server': 'Сервер',
   'nav.settings': 'Настройки',
+  'nav.statistics': 'Статистика',
   'nav.transactions': 'Операции',
   'settings.categories': 'Категории и параметры учета',
   'settings.expenseCategories': 'Расходы',

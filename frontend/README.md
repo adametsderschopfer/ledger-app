@@ -4,7 +4,7 @@ Angular web application for Ledger, a self-hosted personal finance service. The 
 
 ## Responsibilities
 
-- Provide the browser UI for authentication, dashboards, transactions, incomes, expenses, loans, settings, and server administration.
+- Provide the browser UI for authentication, dashboards, statistics, transactions, incomes, expenses, loans, settings, and server administration.
 - Call the backend through relative `/api/*` endpoints.
 - Support local development with Angular CLI and self-hosted deployment through the root Docker Compose stack.
 
