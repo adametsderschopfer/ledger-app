@@ -77,6 +77,13 @@ The application expects the backend API gateway to expose:
 - `/api/ledger/*` for categories, transactions, loans, and obligations.
 - `/api/server/*` for admin user management.
 
+List endpoints return cursor pages in the shape `{ items, nextCursor, hasMore }`. The app uses infinite scroll with a manual "load more" fallback for transactions, incomes, expenses, loans, categories, obligations, and admin users.
+
+Financial totals are loaded separately from:
+
+- `/api/ledger/dashboard-summary?month=YYYY-MM`
+- `/api/ledger/statistics-summary?months=12`
+
 The default local admin is created by the backend:
 
 - `admin@ledger.local` / `admin`

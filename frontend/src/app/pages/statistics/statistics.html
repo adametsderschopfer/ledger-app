@@ -1,7 +1,6 @@
 <div class="statistics-page">
 <section class="page-heading">
   <div>
-    <p class="eyebrow">{{ i18n.t('stats.analytics') }}</p>
     <h1>{{ i18n.t('stats.title') }}</h1>
   </div>
   <a mat-stroked-button routerLink="/transactions">
@@ -10,7 +9,7 @@
   </a>
 </section>
 
-@if (!ledger.hasLoaded()) {
+@if (!summary()) {
   <section class="ledger-skeleton-list" [attr.aria-label]="i18n.t('stats.loading')">
     <div class="ledger-skeleton-card"></div>
     <div class="ledger-skeleton-card"></div>

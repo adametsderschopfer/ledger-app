@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"ledger/backend/internal/domain"
@@ -15,6 +16,7 @@ var (
 	ErrForbidden          = errors.New("forbidden")
 	ErrNotFound           = errors.New("not found")
 	ErrConflict           = errors.New("conflict")
+	ErrInvalidCursor      = errors.New("invalid cursor")
 )
 
 type Store interface {
@@ -23,7 +25,7 @@ type Store interface {
 	ValidateSession(ctx context.Context, token string) (domain.User, error)
 	UpdateProfile(ctx context.Context, userID string, profile domain.UpdateProfile) (domain.User, error)
 	UpdatePassword(ctx context.Context, userID string, password domain.UpdatePassword) error
-	ListUsers(ctx context.Context) ([]domain.User, error)
+	ListUsers(ctx context.Context, options domain.ListOptions) (domain.PagedResponse[domain.User], error)
 	CreateUser(ctx context.Context, user domain.CreateUser) (domain.User, error)
 	DeleteUser(ctx context.Context, userID string) error
 	ToggleUser(ctx context.Context, userID string) (domain.User, error)
@@ -141,8 +143,17 @@ func (s *Service) users(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := s.store.ListUsers(r.Context())
+	options, ok := parseListOptions(w, r, 30)
+	if !ok {
+		return
+	}
+
+	users, err := s.store.ListUsers(r.Context(), options)
 	if err != nil {
+		if errors.Is(err, ErrInvalidCursor) {
+			platform.WriteError(w, http.StatusBadRequest, "invalid pagination cursor")
+			return
+		}
 		platform.WriteError(w, http.StatusInternalServerError, "users could not be loaded")
 		return
 	}
@@ -241,4 +252,21 @@ func (s *Service) requireUser(w http.ResponseWriter, r *http.Request) (domain.Us
 	}
 
 	return user, true
+}
+
+func parseListOptions(w http.ResponseWriter, r *http.Request, defaultLimit int) (domain.ListOptions, bool) {
+	limit := defaultLimit
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 {
+			platform.WriteError(w, http.StatusBadRequest, "invalid limit")
+			return domain.ListOptions{}, false
+		}
+		limit = value
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	return domain.ListOptions{Limit: limit, Cursor: strings.TrimSpace(r.URL.Query().Get("cursor"))}, true
 }

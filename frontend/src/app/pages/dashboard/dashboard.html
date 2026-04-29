@@ -1,6 +1,5 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">{{ i18n.t('dashboard.currentMonth') }}</p>
     <h1>{{ i18n.t('dashboard.summary') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openDailyExpenses()">
@@ -46,7 +45,7 @@
       }}</span>
     </div>
 
-    @if (!ledger.hasLoaded()) {
+    @if (!ledger.dashboardSummary()) {
       <div class="ledger-skeleton-list section-placeholder">
         <div class="ledger-skeleton-row"></div>
         <div class="ledger-skeleton-row"></div>
@@ -87,7 +86,7 @@
       }}</span>
     </div>
 
-    @if (!ledger.hasLoaded()) {
+    @if (!ledger.dashboardSummary()) {
       <div class="ledger-skeleton-list section-placeholder">
         <div class="ledger-skeleton-row"></div>
         <div class="ledger-skeleton-row"></div>
@@ -129,7 +128,7 @@
     </button>
   </div>
 
-  @if (!ledger.hasLoaded()) {
+  @if (!ledger.dashboardSummary()) {
     <div class="obligation-grid section-placeholder">
       <div class="ledger-skeleton-card"></div>
       <div class="ledger-skeleton-card"></div>
@@ -194,7 +193,7 @@
     }}</span>
   </div>
 
-  @if (!ledger.hasLoaded()) {
+  @if (!ledger.dashboardSummary()) {
     <div class="ledger-skeleton-list section-placeholder">
       <div class="ledger-skeleton-row"></div>
       <div class="ledger-skeleton-row"></div>

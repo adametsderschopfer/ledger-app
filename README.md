@@ -21,6 +21,8 @@ The Docker Compose stack runs:
 - `ledger-service` - categories, transactions, loans, obligations, and loan-payment balance updates.
 - `postgres` - PostgreSQL 16 database, exposed locally on `localhost:5433`.
 
+Ledger list endpoints use cursor-based pagination for scalable self-hosted data sets. Dashboard and statistics totals are returned by dedicated summary endpoints so financial metrics are not derived from a partially loaded list page.
+
 ## Self-Hosted Quick Start
 
 Prerequisites:

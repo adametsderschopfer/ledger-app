@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
+import { emptyPagedListState, PagedListState } from '../models/ledger.models';
 import {
   AppUser,
   CreateUser,
@@ -23,20 +24,32 @@ export class InMemoryAuthRepository extends AuthRepository {
     },
   ]);
   private readonly currentUserState = signal<AppUser | null>(this.restoreCurrentUser());
-  private readonly usersLoadingState = signal(false);
-  private readonly usersLoadedState = signal(true);
+  private readonly userListState = signal<PagedListState<AppUser>>(emptyPagedListState());
 
   override readonly currentUser = this.currentUserState.asReadonly();
-  override readonly users = this.usersState.asReadonly();
-  override readonly usersLoading = this.usersLoadingState.asReadonly();
-  override readonly usersLoaded = this.usersLoadedState.asReadonly();
+  override readonly userList = this.userListState.asReadonly();
+  override readonly usersLoading = computed(() => this.userListState().isLoading);
+  override readonly usersLoaded = computed(() => this.userListState().hasLoaded);
+  readonly users = this.usersState.asReadonly();
 
   override loadCurrentUser(): void {
     return;
   }
 
-  override loadUsers(): void {
-    return;
+  override loadUsers(reset = false): void {
+    const current = this.userListState();
+    const offset = reset ? 0 : Number(current.nextCursor || 0);
+    const pageSize = 30;
+    const items = this.usersState().slice(offset, offset + pageSize);
+    const nextOffset = offset + items.length;
+    this.userListState.set({
+      items: reset ? items : [...current.items, ...items],
+      nextCursor: nextOffset < this.usersState().length ? String(nextOffset) : '',
+      hasMore: nextOffset < this.usersState().length,
+      isLoading: false,
+      hasLoaded: true,
+      error: false,
+    });
   }
 
   override login(credentials: LoginCredentials): Observable<boolean> {
@@ -70,6 +83,7 @@ export class InMemoryAuthRepository extends AuthRepository {
         isActive: true,
       },
     ]);
+    this.loadUsers(true);
   }
 
   override updateProfile(profile: UpdateProfile): Observable<boolean> {
@@ -95,6 +109,7 @@ export class InMemoryAuthRepository extends AuthRepository {
     this.usersState.update((users) =>
       users.map((user) => (user.id === currentUser.id ? updated : user)),
     );
+    this.loadUsers(true);
     this.currentUserState.set(updated);
     return of(true);
   }
@@ -113,12 +128,14 @@ export class InMemoryAuthRepository extends AuthRepository {
     this.usersState.update((users) =>
       users.map((user) => (user.id === currentUser.id ? updated : user)),
     );
+    this.loadUsers(true);
     this.currentUserState.set(updated);
     return of(true);
   }
 
   override removeUser(userId: string): void {
     this.usersState.update((users) => users.filter((user) => user.id !== userId));
+    this.loadUsers(true);
 
     if (this.currentUserState()?.id === userId) {
       this.currentUserState.set(null);
@@ -130,6 +147,7 @@ export class InMemoryAuthRepository extends AuthRepository {
     this.usersState.update((users) =>
       users.map((user) => (user.id === userId ? { ...user, isActive: !user.isActive } : user)),
     );
+    this.loadUsers(true);
 
     if (
       this.currentUserState()?.id === userId &&

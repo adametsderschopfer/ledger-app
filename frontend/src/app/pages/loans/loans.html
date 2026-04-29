@@ -1,6 +1,5 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">{{ i18n.t('loan.sectionEyebrow') }}</p>
     <h1>{{ i18n.t('loan.title') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openCreateDialog()">
@@ -78,5 +77,13 @@
     <tr mat-row *matRowDef="let row; columns: columns"></tr>
       </table>
     </div>
+    @if (hasMore()) {
+      <div #loadMoreAnchor class="load-more">
+        <button mat-stroked-button type="button" [disabled]="isPageLoading()" (click)="loadMore()">
+          <mat-icon>expand_more</mat-icon>
+          {{ i18n.t('transactions.loadMore') }}
+        </button>
+      </div>
+    }
   }
 </section>

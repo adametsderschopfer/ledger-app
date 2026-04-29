@@ -1,5 +1,6 @@
 import { Signal } from '@angular/core';
 import { Observable } from 'rxjs';
+import { PagedListState } from '../models/ledger.models';
 import {
   AppUser,
   CreateUser,
@@ -10,12 +11,12 @@ import {
 
 export abstract class AuthRepository {
   abstract readonly currentUser: Signal<AppUser | null>;
-  abstract readonly users: Signal<readonly AppUser[]>;
+  abstract readonly userList: Signal<PagedListState<AppUser>>;
   abstract readonly usersLoading: Signal<boolean>;
   abstract readonly usersLoaded: Signal<boolean>;
 
   abstract loadCurrentUser(): void;
-  abstract loadUsers(): void;
+  abstract loadUsers(reset?: boolean): void;
   abstract login(credentials: LoginCredentials): Observable<boolean>;
   abstract logout(): void;
   abstract updateProfile(profile: UpdateProfile): Observable<boolean>;

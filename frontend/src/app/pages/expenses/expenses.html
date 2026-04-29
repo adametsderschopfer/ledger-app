@@ -1,6 +1,5 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">{{ i18n.t('transactions.expensesEyebrow') }}</p>
     <h1>{{ i18n.t('transactions.expensesTitle') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openCreateDialog()">
@@ -12,6 +11,17 @@
 <app-transaction-groups
   [groups]="ledger.expenseTransactionGroups()"
   [emptyText]="i18n.t('transactions.expensesEmpty')"
-  [isLoading]="ledger.isLoading()"
-  [hasLoaded]="ledger.hasLoaded()"
+  [isLoading]="ledger.expenseTransactionList().isLoading"
+  [hasLoaded]="ledger.expenseTransactionList().hasLoaded"
 />
+
+@if (hasMore()) {
+  <div #loadMoreAnchor class="load-more">
+    <button mat-stroked-button type="button" [disabled]="isPageLoading()" (click)="loadMore()">
+      <mat-icon>expand_more</mat-icon>
+      {{ i18n.t('transactions.loadMore') }}
+    </button>
+  </div>
+} @else if (ledger.expenseTransactions().length > 0) {
+  <p class="list-end">{{ i18n.t('transactions.allDone') }}</p>
+}

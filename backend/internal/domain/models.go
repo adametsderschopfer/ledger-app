@@ -109,6 +109,26 @@ type BatchTransactions struct {
 	Transactions []CreateTransaction `json:"transactions"`
 }
 
+type PagedResponse[T any] struct {
+	Items      []T    `json:"items"`
+	NextCursor string `json:"nextCursor,omitempty"`
+	HasMore    bool   `json:"hasMore"`
+}
+
+type ListOptions struct {
+	Limit  int
+	Cursor string
+}
+
+type TransactionFilters struct {
+	ListOptions
+	Type       TransactionType
+	CategoryID string
+	StartDate  string
+	EndDate    string
+	Search     string
+}
+
 type Loan struct {
 	ID              string  `json:"id"`
 	UserID          string  `json:"-"`
@@ -158,6 +178,79 @@ type UpdateLoan struct {
 	RemainingAmount float64 `json:"remainingAmount,omitempty"`
 	MonthlyPayment  float64 `json:"monthlyPayment"`
 	DueDay          int     `json:"dueDay"`
+}
+
+type CategoryBreakdown struct {
+	Category     Category `json:"category"`
+	Amount       float64  `json:"amount"`
+	Share        int      `json:"share"`
+	Transactions int      `json:"transactions"`
+}
+
+type UpcomingObligation struct {
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	Amount     float64 `json:"amount"`
+	DueDay     int     `json:"dueDay"`
+	Source     string  `json:"source"`
+	CategoryID string  `json:"categoryId,omitempty"`
+}
+
+type DashboardSummary struct {
+	Month               string               `json:"month"`
+	MonthIncome         float64              `json:"monthIncome"`
+	MonthExpense        float64              `json:"monthExpense"`
+	MonthBalance        float64              `json:"monthBalance"`
+	LoanDebt            float64              `json:"loanDebt"`
+	ExpenseBreakdown    []CategoryBreakdown  `json:"expenseBreakdown"`
+	ActiveLoans         []Loan               `json:"activeLoans"`
+	UpcomingObligations []UpcomingObligation `json:"upcomingObligations"`
+	RecentTransactions  []LedgerTransaction  `json:"recentTransactions"`
+}
+
+type MonthStat struct {
+	Key     string  `json:"key"`
+	Income  float64 `json:"income"`
+	Expense float64 `json:"expense"`
+	Balance float64 `json:"balance"`
+}
+
+type WeekdayStat struct {
+	Weekday int     `json:"weekday"`
+	Amount  float64 `json:"amount"`
+	Count   int     `json:"count"`
+}
+
+type LoanStat struct {
+	Loan          Loan    `json:"loan"`
+	Paid          float64 `json:"paid"`
+	PaidShare     int     `json:"paidShare"`
+	PressureShare int     `json:"pressureShare"`
+}
+
+type TopTransaction struct {
+	Transaction   LedgerTransaction `json:"transaction"`
+	CategoryName  string            `json:"categoryName"`
+	CategoryColor string            `json:"categoryColor"`
+}
+
+type StatisticsSummary struct {
+	TotalIncome          float64             `json:"totalIncome"`
+	TotalExpense         float64             `json:"totalExpense"`
+	NetBalance           float64             `json:"netBalance"`
+	SavingsRate          int                 `json:"savingsRate"`
+	FirstTransactionDate string              `json:"firstTransactionDate"`
+	ActiveDays           int                 `json:"activeDays"`
+	AverageDailyExpense  float64             `json:"averageDailyExpense"`
+	AverageTransaction   float64             `json:"averageTransaction"`
+	MonthlyDebtPressure  float64             `json:"monthlyDebtPressure"`
+	LoanPayoffShare      int                 `json:"loanPayoffShare"`
+	MonthStats           []MonthStat         `json:"monthStats"`
+	ExpenseCategories    []CategoryBreakdown `json:"expenseCategories"`
+	IncomeCategories     []CategoryBreakdown `json:"incomeCategories"`
+	Weekdays             []WeekdayStat       `json:"weekdays"`
+	LoanStats            []LoanStat          `json:"loanStats"`
+	TopExpenses          []TopTransaction    `json:"topExpenses"`
 }
 
 func NormalizeLanguage(language string) AppLanguage {

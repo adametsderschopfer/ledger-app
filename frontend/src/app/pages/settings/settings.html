@@ -1,6 +1,5 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">{{ i18n.t('settings.subtitle') }}</p>
     <h1>{{ i18n.t('settings.title') }}</h1>
   </div>
 </section>
@@ -114,6 +113,15 @@
         }
       </div>
     </section>
+
+    @if (hasMoreCategories()) {
+      <div #categoryLoadMoreAnchor class="load-more">
+        <button mat-stroked-button type="button" [disabled]="ledger.categoryList().isLoading" (click)="loadMoreCategories()">
+          <mat-icon>expand_more</mat-icon>
+          {{ i18n.t('transactions.loadMore') }}
+        </button>
+      </div>
+    }
   </mat-tab>
 
   <mat-tab [label]="i18n.t('settings.profile')">
@@ -236,6 +244,14 @@
               <tr mat-row *matRowDef="let row; columns: userColumns"></tr>
             </table>
           </div>
+          @if (hasMoreUsers()) {
+            <div #userLoadMoreAnchor class="load-more">
+              <button mat-stroked-button type="button" [disabled]="auth.userList().isLoading" (click)="loadMoreUsers()">
+                <mat-icon>expand_more</mat-icon>
+                {{ i18n.t('transactions.loadMore') }}
+              </button>
+            </div>
+          }
         }
       </section>
     </mat-tab>

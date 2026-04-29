@@ -1,6 +1,9 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable, Signal, inject, signal } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Injectable, Signal, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
+import { AppLanguageService } from '../i18n/app-language.service';
+import { PagedListState, PagedResponse, emptyPagedListState } from '../models/ledger.models';
+import { AppNotificationService } from '../notifications/app-notification.service';
 import {
   AppUser,
   AuthSession,
@@ -14,19 +17,19 @@ import { AuthRepository } from './auth.repository';
 @Injectable()
 export class HttpAuthRepository extends AuthRepository {
   private readonly http = inject(HttpClient);
+  private readonly i18n = inject(AppLanguageService);
+  private readonly notifications = inject(AppNotificationService);
   private readonly apiUrl = '/api/auth';
   private readonly tokenKey = 'ledger-auth-token';
   private readonly userKey = 'ledger-current-user';
 
   private readonly currentUserState = signal<AppUser | null>(this.restoreUser());
-  private readonly usersState = signal<readonly AppUser[]>([]);
-  private readonly usersLoadingState = signal(false);
-  private readonly usersLoadedState = signal(false);
+  private readonly usersState = signal<PagedListState<AppUser>>(emptyPagedListState());
 
   override readonly currentUser: Signal<AppUser | null> = this.currentUserState.asReadonly();
-  override readonly users: Signal<readonly AppUser[]> = this.usersState.asReadonly();
-  override readonly usersLoading: Signal<boolean> = this.usersLoadingState.asReadonly();
-  override readonly usersLoaded: Signal<boolean> = this.usersLoadedState.asReadonly();
+  override readonly userList: Signal<PagedListState<AppUser>> = this.usersState.asReadonly();
+  override readonly usersLoading: Signal<boolean> = computed(() => this.usersState().isLoading);
+  override readonly usersLoaded: Signal<boolean> = computed(() => this.usersState().hasLoaded);
 
   constructor() {
     super();
@@ -56,23 +59,46 @@ export class HttpAuthRepository extends AuthRepository {
       });
   }
 
-  override loadUsers(): void {
+  override loadUsers(reset = false): void {
     const headers = this.authHeaders();
     if (!headers) {
-      this.usersState.set([]);
-      this.usersLoadedState.set(false);
-      this.usersLoadingState.set(false);
+      this.usersState.set(emptyPagedListState());
       return;
     }
 
-    this.usersLoadingState.set(true);
+    const current = this.usersState();
+    if (!reset && (!current.hasMore || current.isLoading) && current.hasLoaded) {
+      return;
+    }
+
+    const cursor = reset ? '' : current.nextCursor;
+    this.usersState.set({
+      ...(reset ? emptyPagedListState<AppUser>() : current),
+      isLoading: true,
+      error: false,
+    });
+
     this.http
-      .get<readonly AppUser[]>('/api/server/users', { headers })
-      .pipe(catchError(() => of([])))
-      .subscribe((users) => {
-        this.usersState.set(users ?? []);
-        this.usersLoadedState.set(true);
-        this.usersLoadingState.set(false);
+      .get<PagedResponse<AppUser>>('/api/server/users', {
+        headers,
+        params: listParams(cursor),
+      })
+      .pipe(catchError(() => of(null)))
+      .subscribe((page) => {
+        if (!page) {
+          this.usersState.update((latest) => ({ ...latest, isLoading: false, hasLoaded: true, error: true }));
+          this.notifyLoadFailed();
+          return;
+        }
+
+        this.usersState.update((latest) => ({
+          items: reset ? page.items : dedupeById([...latest.items, ...page.items]),
+          nextCursor: page.nextCursor ?? '',
+          hasMore: page.hasMore,
+          isLoading: false,
+          hasLoaded: true,
+          error: false,
+        }));
       });
   }
 
@@ -92,7 +118,7 @@ export class HttpAuthRepository extends AuthRepository {
     this.clearSession();
 
     if (headers) {
-      this.http.post<void>(`${this.apiUrl}/logout`, {}, { headers }).subscribe();
+      this.http.post<void>(`${this.apiUrl}/logout`, {}, { headers }).pipe(catchError(() => of(undefined))).subscribe();
     }
   }
 
@@ -105,7 +131,10 @@ export class HttpAuthRepository extends AuthRepository {
     return this.http.patch<AppUser>(`${this.apiUrl}/profile`, profile, { headers }).pipe(
       tap((user) => this.setSession(user, this.token() ?? '')),
       tap((user) =>
-        this.usersState.update((users) => users.map((item) => (item.id === user.id ? user : item))),
+        this.usersState.update((state) => ({
+          ...state,
+          items: state.items.map((item) => (item.id === user.id ? user : item)),
+        })),
       ),
       map(() => true),
       catchError(() => of(false)),
@@ -130,8 +159,11 @@ export class HttpAuthRepository extends AuthRepository {
       return;
     }
 
-    this.http.post<AppUser>('/api/server/users', user, { headers }).subscribe((created) => {
-      this.usersState.update((users) => [...users, created]);
+    this.http.post<AppUser>('/api/server/users', user, { headers }).subscribe({
+      next: (created) => {
+        this.usersState.update((state) => ({ ...state, items: [...state.items, created] }));
+      },
+      error: () => this.notifySaveFailed(),
     });
   }
 
@@ -141,8 +173,11 @@ export class HttpAuthRepository extends AuthRepository {
       return;
     }
 
-    this.http.delete<void>(`/api/server/users/${userId}`, { headers }).subscribe(() => {
-      this.usersState.update((users) => users.filter((user) => user.id !== userId));
+    this.http.delete<void>(`/api/server/users/${userId}`, { headers }).subscribe({
+      next: () => {
+        this.usersState.update((state) => ({ ...state, items: state.items.filter((user) => user.id !== userId) }));
+      },
+      error: () => this.notifySaveFailed(),
     });
   }
 
@@ -154,11 +189,25 @@ export class HttpAuthRepository extends AuthRepository {
 
     this.http
       .patch<AppUser>(`/api/server/users/${userId}/status`, {}, { headers })
-      .subscribe((updated) => {
-        this.usersState.update((users) =>
-          users.map((user) => (user.id === userId ? updated : user)),
-        );
+      .subscribe({
+        next: (updated) => {
+          this.usersState.update((users) =>
+            ({
+              ...users,
+              items: users.items.map((user) => (user.id === userId ? updated : user)),
+            }),
+          );
+        },
+        error: () => this.notifySaveFailed(),
       });
+  }
+
+  private notifyLoadFailed(): void {
+    this.notifications.error(this.i18n.t('notification.loadFailed'));
+  }
+
+  private notifySaveFailed(): void {
+    this.notifications.error(this.i18n.t('notification.saveFailed'));
   }
 
   private authHeaders(): HttpHeaders | undefined {
@@ -184,9 +233,7 @@ export class HttpAuthRepository extends AuthRepository {
 
   private clearSession(): void {
     this.currentUserState.set(null);
-    this.usersState.set([]);
-    this.usersLoadedState.set(false);
-    this.usersLoadingState.set(false);
+    this.usersState.set(emptyPagedListState());
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(this.userKey);
       sessionStorage.removeItem(this.tokenKey);
@@ -210,4 +257,23 @@ export class HttpAuthRepository extends AuthRepository {
       return null;
     }
   }
+}
+
+function listParams(cursor: string): HttpParams {
+  let params = new HttpParams().set('limit', 30);
+  if (cursor) {
+    params = params.set('cursor', cursor);
+  }
+  return params;
+}
+
+function dedupeById(items: readonly AppUser[]): readonly AppUser[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) {
+      return false;
+    }
+    seen.add(item.id);
+    return true;
+  });
 }

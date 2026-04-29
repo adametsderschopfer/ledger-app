@@ -3,8 +3,12 @@ package authapp
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"ledger/backend/internal/domain"
 	"ledger/backend/internal/platform"
@@ -60,6 +64,9 @@ CREATE TABLE IF NOT EXISTS categories (
   links_to_loan BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (user_id, id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_auth_users_page
+ON users (created_at, name, id);
 `)
 	if err != nil {
 		return err
@@ -123,27 +130,49 @@ WHERE s.token = $1
 	return user, nil
 }
 
-func (s *PostgresStore) ListUsers(ctx context.Context) ([]domain.User, error) {
-	rows, err := s.db.QueryContext(ctx, `
-SELECT id, name, email, avatar_url, role, is_active
-FROM users
-ORDER BY created_at, name
-`)
+func (s *PostgresStore) ListUsers(ctx context.Context, options domain.ListOptions) (domain.PagedResponse[domain.User], error) {
+	cursor, err := decodeCursor[userCursor](options.Cursor)
 	if err != nil {
-		return nil, err
+		return domain.PagedResponse[domain.User]{}, ErrInvalidCursor
+	}
+
+	args := []any{}
+	query := `
+SELECT id, name, email, avatar_url, role, is_active, created_at
+FROM users
+`
+	if cursor != nil {
+		args = append(args, cursor.CreatedAt, cursor.Name, cursor.ID)
+		query += fmt.Sprintf("WHERE (created_at, name, id) > ($%d, $%d, $%d)\n", len(args)-2, len(args)-1, len(args))
+	}
+	args = append(args, normalizedLimit(options.Limit)+1)
+	query += fmt.Sprintf("ORDER BY created_at, name, id LIMIT $%d", len(args))
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return domain.PagedResponse[domain.User]{}, err
 	}
 	defer rows.Close()
 
 	users := make([]domain.User, 0)
+	createdAtByID := make(map[string]time.Time)
 	for rows.Next() {
 		var user domain.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL, &user.Role, &user.IsActive); err != nil {
-			return nil, err
+		var createdAt time.Time
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.AvatarURL, &user.Role, &user.IsActive, &createdAt); err != nil {
+			return domain.PagedResponse[domain.User]{}, err
 		}
+		createdAtByID[user.ID] = createdAt
 		users = append(users, user)
 	}
 
-	return users, rows.Err()
+	if err := rows.Err(); err != nil {
+		return domain.PagedResponse[domain.User]{}, err
+	}
+
+	return pageFromItems(users, options.Limit, func(user domain.User) string {
+		return encodeCursor(userCursor{CreatedAt: createdAtByID[user.ID], Name: user.Name, ID: user.ID})
+	}), nil
 }
 
 func (s *PostgresStore) UpdateProfile(ctx context.Context, userID string, profile domain.UpdateProfile) (domain.User, error) {
@@ -321,4 +350,53 @@ ON CONFLICT (user_id, id) DO NOTHING
 	}
 
 	return nil
+}
+
+type userCursor struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Name      string    `json:"name"`
+	ID        string    `json:"id"`
+}
+
+func normalizedLimit(limit int) int {
+	if limit < 1 {
+		return 30
+	}
+	if limit > 100 {
+		return 100
+	}
+	return limit
+}
+
+func pageFromItems[T any](items []T, limit int, cursorFor func(T) string) domain.PagedResponse[T] {
+	limit = normalizedLimit(limit)
+	hasMore := len(items) > limit
+	if hasMore {
+		items = items[:limit]
+	}
+	nextCursor := ""
+	if hasMore && len(items) > 0 {
+		nextCursor = cursorFor(items[len(items)-1])
+	}
+	return domain.PagedResponse[T]{Items: items, NextCursor: nextCursor, HasMore: hasMore}
+}
+
+func encodeCursor(value any) string {
+	raw, _ := json.Marshal(value)
+	return base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func decodeCursor[T any](cursor string) (*T, error) {
+	if strings.TrimSpace(cursor) == "" {
+		return nil, nil
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(cursor)
+	if err != nil {
+		return nil, err
+	}
+	var value T
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
 }

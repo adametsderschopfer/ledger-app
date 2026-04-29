@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import { AppLanguageService } from '../../core/i18n/app-language.service';
+import { AppNotificationService } from '../../core/notifications/app-notification.service';
 
 @Component({
   selector: 'app-login',
@@ -21,13 +22,14 @@ export class Login {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthFacade);
   private readonly router = inject(Router);
+  private readonly notifications = inject(AppNotificationService);
   readonly i18n = inject(AppLanguageService);
   readonly loginFailed = signal(false);
   readonly loginPending = signal(false);
 
   readonly form = this.fb.group({
-    email: ['admin@ledger.local', [Validators.required, Validators.email]],
-    password: ['admin', [Validators.required, Validators.minLength(4)]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(4)]],
   });
 
   submit(): void {
@@ -44,6 +46,7 @@ export class Login {
         this.loginFailed.set(!success);
 
         if (success) {
+          this.notifications.success(this.i18n.t('notification.loginSuccess'));
           void this.router.navigateByUrl('/');
         }
       });

@@ -1,11 +1,10 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">{{ i18n.t('nav.server') }}</p>
-    <h1>Пользователи и роли</h1>
+    <h1>{{ i18n.t('server.title') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openCreateDialog()">
     <mat-icon>person_add</mat-icon>
-    Добавить пользователя
+    {{ i18n.t('actions.addUser') }}
   </button>
 </section>
 
@@ -17,47 +16,47 @@
       <div class="ledger-skeleton-row"></div>
     </div>
   } @else if (auth.users().length === 0) {
-    <app-empty-state icon="group" title="Пользователей пока нет" text="Добавленные пользователи и их роли будут отображаться здесь." />
+    <app-empty-state icon="group" [title]="i18n.t('server.title')" [text]="i18n.t('server.empty')" />
   } @else {
     <div class="table-shell">
       <table mat-table [dataSource]="auth.users()" class="ledger-table">
     <ng-container matColumnDef="name">
-      <th mat-header-cell *matHeaderCellDef>Имя</th>
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('server.name') }}</th>
       <td mat-cell *matCellDef="let user">
         <strong>{{ user.name || '–' }}</strong>
       </td>
     </ng-container>
 
     <ng-container matColumnDef="email">
-      <th mat-header-cell *matHeaderCellDef>Email</th>
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('server.email') }}</th>
       <td mat-cell *matCellDef="let user">{{ user.email || '–' }}</td>
     </ng-container>
 
     <ng-container matColumnDef="role">
-      <th mat-header-cell *matHeaderCellDef>Роль</th>
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('server.role') }}</th>
       <td mat-cell *matCellDef="let user">{{ user.role === 'admin' ? i18n.t('auth.admin') : i18n.t('auth.user') }}</td>
     </ng-container>
 
     <ng-container matColumnDef="status">
-      <th mat-header-cell *matHeaderCellDef>Доступ</th>
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('server.access') }}</th>
       <td mat-cell *matCellDef="let user">
         <mat-slide-toggle
           [checked]="user.isActive"
           [disabled]="user.id === auth.currentUser()?.id"
           (change)="auth.toggleUser(user.id)"
         >
-          {{ user.isActive ? 'Активен' : 'Отключен' }}
+          {{ user.isActive ? i18n.t('server.active') : i18n.t('server.disabled') }}
         </mat-slide-toggle>
       </td>
     </ng-container>
 
     <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef class="numeric">Действия</th>
+      <th mat-header-cell *matHeaderCellDef class="numeric">{{ i18n.t('server.actions') }}</th>
       <td mat-cell *matCellDef="let user" class="numeric">
         <button
           mat-icon-button
           type="button"
-          aria-label="Удалить пользователя"
+          [attr.aria-label]="i18n.t('server.deleteUser')"
           [disabled]="user.id === auth.currentUser()?.id"
           (click)="auth.removeUser(user.id)"
         >
@@ -70,5 +69,13 @@
     <tr mat-row *matRowDef="let row; columns: columns"></tr>
       </table>
     </div>
+    @if (hasMore()) {
+      <div #loadMoreAnchor class="load-more">
+        <button mat-stroked-button type="button" [disabled]="auth.userList().isLoading" (click)="loadMore()">
+          <mat-icon>expand_more</mat-icon>
+          {{ i18n.t('transactions.loadMore') }}
+        </button>
+      </div>
+    }
   }
 </section>

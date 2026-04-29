@@ -10,18 +10,16 @@ import {
   LedgerTransaction,
   Loan,
   Obligation,
+  TransactionListFilters,
   UpdateLoan,
   UpdateObligation,
+  UpcomingObligation,
 } from './models/ledger.models';
 import { LedgerRepository } from './repositories/ledger.repository';
 
 const loanPaymentCategoryId = 'credit-payments';
 
-export interface CategoryBreakdown {
-  category: Category;
-  amount: number;
-  share: number;
-}
+export type { UpcomingObligation } from './models/ledger.models';
 
 export interface TransactionDayGroup {
   date: string;
@@ -30,26 +28,28 @@ export interface TransactionDayGroup {
   transactions: readonly LedgerTransaction[];
 }
 
-export interface UpcomingObligation {
-  id: string;
-  name: string;
-  amount: number;
-  dueDay: number;
-  source: 'loan' | 'custom';
-  categoryId?: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class LedgerFacade {
   private readonly repository = inject(LedgerRepository);
   private readonly i18n = inject(AppLanguageService);
 
-  readonly categories = this.repository.categories;
-  readonly transactions = this.repository.transactions;
-  readonly loans = this.repository.loans;
-  readonly obligations = this.repository.obligations;
+  readonly categoryList = this.repository.categoryList;
+  readonly transactionList = this.repository.transactionList;
+  readonly incomeTransactionList = this.repository.incomeTransactionList;
+  readonly expenseTransactionList = this.repository.expenseTransactionList;
+  readonly loanList = this.repository.loanList;
+  readonly obligationList = this.repository.obligationList;
+  readonly dashboardSummary = this.repository.dashboardSummary;
+  readonly statisticsSummary = this.repository.statisticsSummary;
   readonly isLoading = this.repository.isLoading;
   readonly hasLoaded = this.repository.hasLoaded;
+
+  readonly categories = computed(() => this.categoryList().items);
+  readonly transactions = computed(() => this.transactionList().items);
+  readonly incomeTransactions = computed(() => this.incomeTransactionList().items);
+  readonly expenseTransactions = computed(() => this.expenseTransactionList().items);
+  readonly loans = computed(() => this.loanList().items);
+  readonly obligations = computed(() => this.obligationList().items);
 
   readonly incomeCategories = computed(() =>
     this.categories().filter((category) => category.type === 'income'),
@@ -57,97 +57,56 @@ export class LedgerFacade {
   readonly expenseCategories = computed(() =>
     this.categories().filter((category) => category.type === 'expense'),
   );
-  readonly currentMonthTransactions = computed(() => {
-    const now = new Date();
-    return this.transactions().filter((transaction) => {
-      const date = new Date(`${transaction.date}T00:00:00`);
-      return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-    });
-  });
 
-  readonly monthlyIncome = computed(() =>
-    sumTransactions(this.currentMonthTransactions(), 'income'),
-  );
-  readonly monthlyExpense = computed(() =>
-    sumTransactions(this.currentMonthTransactions(), 'expense'),
-  );
-  readonly monthlyBalance = computed(() => this.monthlyIncome() - this.monthlyExpense());
-  readonly totalLoanDebt = computed(() =>
-    this.loans().reduce((total, loan) => total + loan.remainingAmount, 0),
-  );
-  readonly activeLoans = computed(() => this.loans().filter((loan) => loan.remainingAmount > 0));
+  readonly monthlyIncome = computed(() => this.dashboardSummary()?.monthIncome ?? 0);
+  readonly monthlyExpense = computed(() => this.dashboardSummary()?.monthExpense ?? 0);
+  readonly monthlyBalance = computed(() => this.dashboardSummary()?.monthBalance ?? 0);
+  readonly totalLoanDebt = computed(() => this.dashboardSummary()?.loanDebt ?? 0);
+  readonly activeLoans = computed(() => this.dashboardSummary()?.activeLoans ?? this.loans().filter((loan) => loan.remainingAmount > 0));
   readonly upcomingLoanPayments = computed(() =>
     [...this.activeLoans()].sort((first, second) => first.dueDay - second.dueDay),
   );
-  readonly upcomingObligations = computed<readonly UpcomingObligation[]>(() =>
-    [
-      ...this.activeLoans().map(
-        (loan): UpcomingObligation => ({
-          id: loan.id,
-          name: loan.name,
-          amount: Math.min(loan.monthlyPayment, loan.remainingAmount),
-          dueDay: loan.dueDay,
-          source: 'loan',
-        }),
-      ),
-      ...this.obligations().map(
-        (obligation): UpcomingObligation => ({
-          id: obligation.id,
-          name: obligation.name,
-          amount: obligation.amount,
-          dueDay: obligation.dueDay,
-          categoryId: obligation.categoryId,
-          source: 'custom',
-        }),
-      ),
-    ].sort(
-      (first, second) => first.dueDay - second.dueDay || first.name.localeCompare(second.name),
-    ),
-  );
-  readonly recentTransactions = computed(() =>
-    [...this.transactions()]
-      .sort((first, second) => second.date.localeCompare(first.date))
-      .slice(0, 6),
-  );
+  readonly upcomingObligations = computed(() => this.dashboardSummary()?.upcomingObligations ?? []);
+  readonly recentTransactions = computed(() => this.dashboardSummary()?.recentTransactions ?? []);
+  readonly expenseBreakdown = computed(() => this.dashboardSummary()?.expenseBreakdown ?? []);
   readonly allTransactionGroups = computed(() => groupTransactionsByDay(this.transactions()));
-  readonly incomeTransactionGroups = computed(() =>
-    groupTransactionsByDay(
-      this.transactions().filter((transaction) => transaction.type === 'income'),
-    ),
-  );
-  readonly expenseTransactionGroups = computed(() =>
-    groupTransactionsByDay(
-      this.transactions().filter((transaction) => transaction.type === 'expense'),
-    ),
-  );
-  readonly expenseBreakdown = computed(() => {
-    const expenses = this.currentMonthTransactions().filter(
-      (transaction) => transaction.type === 'expense',
-    );
-    const total = expenses.reduce((sum, transaction) => sum + transaction.amount, 0);
-    const byCategory = new Map<string, number>();
-
-    expenses.forEach((transaction) => {
-      byCategory.set(
-        transaction.categoryId,
-        (byCategory.get(transaction.categoryId) ?? 0) + transaction.amount,
-      );
-    });
-
-    return [...byCategory.entries()]
-      .map(([categoryId, amount]): CategoryBreakdown => {
-        const category = this.categoryById(categoryId);
-        return {
-          category,
-          amount,
-          share: total > 0 ? Math.round((amount / total) * 100) : 0,
-        };
-      })
-      .sort((first, second) => second.amount - first.amount);
-  });
+  readonly incomeTransactionGroups = computed(() => groupTransactionsByDay(this.incomeTransactions()));
+  readonly expenseTransactionGroups = computed(() => groupTransactionsByDay(this.expenseTransactions()));
 
   load(): void {
     this.repository.load();
+  }
+
+  loadCategoriesPage(reset = false): void {
+    this.repository.loadCategoriesPage(reset);
+  }
+
+  loadTransactionsPage(filters: TransactionListFilters, reset = false): void {
+    this.repository.loadTransactionsPage(filters, reset);
+  }
+
+  loadIncomeTransactionsPage(reset = false): void {
+    this.repository.loadIncomeTransactionsPage(reset);
+  }
+
+  loadExpenseTransactionsPage(reset = false): void {
+    this.repository.loadExpenseTransactionsPage(reset);
+  }
+
+  loadLoansPage(reset = false): void {
+    this.repository.loadLoansPage(reset);
+  }
+
+  loadObligationsPage(reset = false): void {
+    this.repository.loadObligationsPage(reset);
+  }
+
+  refreshDashboardSummary(): void {
+    this.repository.refreshDashboardSummary();
+  }
+
+  refreshStatisticsSummary(): void {
+    this.repository.refreshStatisticsSummary();
   }
 
   addTransaction(transaction: CreateTransaction): void {
@@ -191,7 +150,7 @@ export class LedgerFacade {
   }
 
   recordLoanPayment(loanId: string): void {
-    const loan = this.loanById(loanId);
+    const loan = this.loanById(loanId) ?? this.activeLoans().find((item) => item.id === loanId);
 
     if (!loan || loan.remainingAmount <= 0) {
       return;
@@ -246,7 +205,7 @@ export class LedgerFacade {
   }
 
   loanById(loanId: string | undefined): Loan | undefined {
-    return this.loans().find((loan) => loan.id === loanId);
+    return this.loans().find((loan) => loan.id === loanId) ?? this.activeLoans().find((loan) => loan.id === loanId);
   }
 
   obligationById(obligationId: string | undefined): Obligation | undefined {

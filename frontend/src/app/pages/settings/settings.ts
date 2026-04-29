@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  PLATFORM_ID,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -42,7 +52,42 @@ export class Settings {
   readonly theme = inject(AppThemeService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly categoryLoadMoreAnchor = viewChild<ElementRef<HTMLElement>>('categoryLoadMoreAnchor');
+  private readonly userLoadMoreAnchor = viewChild<ElementRef<HTMLElement>>('userLoadMoreAnchor');
   readonly userColumns = ['name', 'email', 'role', 'status', 'actions'];
+  readonly hasMoreCategories = computed(() => this.ledger.categoryList().hasMore);
+  readonly hasMoreUsers = computed(() => this.auth.userList().hasMore);
+
+  constructor() {
+    effect((onCleanup) => {
+      const anchor = this.categoryLoadMoreAnchor();
+      if (!anchor || !this.hasMoreCategories() || !isPlatformBrowser(this.platformId)) {
+        return;
+      }
+      const observer = new IntersectionObserver(([entry]) => {
+        if (entry?.isIntersecting) {
+          this.ledger.loadCategoriesPage(false);
+        }
+      }, { rootMargin: '240px 0px' });
+      observer.observe(anchor.nativeElement);
+      onCleanup(() => observer.disconnect());
+    });
+
+    effect((onCleanup) => {
+      const anchor = this.userLoadMoreAnchor();
+      if (!anchor || !this.hasMoreUsers() || !isPlatformBrowser(this.platformId)) {
+        return;
+      }
+      const observer = new IntersectionObserver(([entry]) => {
+        if (entry?.isIntersecting) {
+          this.auth.loadUsers(false);
+        }
+      }, { rootMargin: '240px 0px' });
+      observer.observe(anchor.nativeElement);
+      onCleanup(() => observer.disconnect());
+    });
+  }
 
   openCategoryDialog(): void {
     const dialogRef = this.dialog.open(CategoryDialog, {
@@ -122,5 +167,13 @@ export class Settings {
         }
       });
     });
+  }
+
+  loadMoreCategories(): void {
+    this.ledger.loadCategoriesPage(false);
+  }
+
+  loadMoreUsers(): void {
+    this.auth.loadUsers(false);
   }
 }

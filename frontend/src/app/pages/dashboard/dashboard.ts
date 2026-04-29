@@ -85,7 +85,17 @@ export class Dashboard {
   }
 
   openEditObligationDialog(obligation: UpcomingObligation): void {
-    const customObligation = this.ledger.obligationById(obligation.id);
+    const customObligation =
+      this.ledger.obligationById(obligation.id) ??
+      (obligation.categoryId
+        ? {
+            id: obligation.id,
+            name: obligation.name,
+            amount: obligation.amount,
+            dueDay: obligation.dueDay,
+            categoryId: obligation.categoryId,
+          }
+        : undefined);
     if (!customObligation) {
       return;
     }

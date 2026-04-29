@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -89,7 +90,6 @@ export class App {
     const items: readonly NavigationItem[] = [
       { labelKey: 'nav.dashboard', icon: 'dashboard', route: '/dashboard' },
       { labelKey: 'nav.transactions', icon: 'receipt_long', route: '/transactions' },
-      { labelKey: 'nav.statistics', icon: 'monitoring', route: '/statistics', disabled: true },
       { labelKey: 'nav.incomes', icon: 'south_west', route: '/incomes' },
       { labelKey: 'nav.expenses', icon: 'north_east', route: '/expenses' },
       { labelKey: 'nav.loans', icon: 'account_balance', route: '/loans' },
@@ -105,10 +105,13 @@ export class App {
         return;
       }
 
-      this.ledger.load();
-      if (this.auth.isAdmin()) {
-        this.auth.loadUsers();
-      }
+      const isAdmin = this.auth.isAdmin();
+      untracked(() => {
+        this.ledger.load();
+        if (isAdmin) {
+          this.auth.loadUsers(true);
+        }
+      });
     });
 
     this.router.events.subscribe((event) => {

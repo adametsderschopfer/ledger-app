@@ -1,15 +1,20 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, Signal, WritableSignal, computed, signal } from '@angular/core';
 import {
   Category,
   CreateCategory,
   CreateLoan,
   CreateObligation,
   CreateTransaction,
+  DashboardSummary,
   LedgerTransaction,
   Loan,
   Obligation,
+  PagedListState,
+  StatisticsSummary,
+  TransactionListFilters,
   UpdateLoan,
   UpdateObligation,
+  emptyPagedListState,
 } from '../models/ledger.models';
 import { LedgerRepository } from './ledger.repository';
 
@@ -17,7 +22,7 @@ const expenseLoanCategoryId = 'credit-payments';
 
 @Injectable()
 export class InMemoryLedgerRepository extends LedgerRepository {
-  private readonly categoryState = signal<readonly Category[]>([
+  private readonly categorySource = signal<readonly Category[]>([
     { id: 'salary', name: 'Зарплата', type: 'income', color: '#1a73e8', isSystem: true },
     { id: 'freelance', name: 'Фриланс', type: 'income', color: '#34a853' },
     { id: 'interest', name: 'Проценты', type: 'income', color: '#fbbc04' },
@@ -40,9 +45,9 @@ export class InMemoryLedgerRepository extends LedgerRepository {
     },
   ]);
 
-  private readonly transactionState = signal<readonly LedgerTransaction[]>(createMockTransactions());
+  private readonly transactionSource = signal<readonly LedgerTransaction[]>(createMockTransactions());
 
-  private readonly loanState = signal<readonly Loan[]>([
+  private readonly loanSource = signal<readonly Loan[]>([
     {
       id: 'car-loan',
       name: 'Автокредит',
@@ -61,7 +66,7 @@ export class InMemoryLedgerRepository extends LedgerRepository {
     },
   ]);
 
-  private readonly obligationState = signal<readonly Obligation[]>([
+  private readonly obligationSource = signal<readonly Obligation[]>([
     {
       id: 'internet',
       name: 'Домашний интернет',
@@ -80,22 +85,81 @@ export class InMemoryLedgerRepository extends LedgerRepository {
 
   private readonly isLoadingState = signal(false);
   private readonly hasLoadedState = signal(true);
+  private readonly categoryPageState = signal<PagedListState<Category>>(emptyPagedListState());
+  private readonly transactionPageState = signal<PagedListState<LedgerTransaction>>(emptyPagedListState());
+  private readonly incomeTransactionPageState = signal<PagedListState<LedgerTransaction>>(emptyPagedListState());
+  private readonly expenseTransactionPageState = signal<PagedListState<LedgerTransaction>>(emptyPagedListState());
+  private readonly loanPageState = signal<PagedListState<Loan>>(emptyPagedListState());
+  private readonly obligationPageState = signal<PagedListState<Obligation>>(emptyPagedListState());
+  private readonly dashboardSummaryState = computed(() => buildDashboardSummary(this.categorySource(), this.transactionSource(), this.loanSource(), this.obligationSource()));
+  private readonly statisticsSummaryState = computed(() => buildStatisticsSummary(this.categorySource(), this.transactionSource(), this.loanSource()));
 
   override readonly isLoading = this.isLoadingState.asReadonly();
   override readonly hasLoaded = this.hasLoadedState.asReadonly();
-  override readonly categories = this.categoryState.asReadonly();
-  override readonly transactions = this.transactionState.asReadonly();
-  override readonly loans = this.loanState.asReadonly();
-  override readonly obligations = this.obligationState.asReadonly();
+  override readonly categoryList: Signal<PagedListState<Category>> = this.categoryPageState.asReadonly();
+  override readonly transactionList: Signal<PagedListState<LedgerTransaction>> = this.transactionPageState.asReadonly();
+  override readonly incomeTransactionList: Signal<PagedListState<LedgerTransaction>> = this.incomeTransactionPageState.asReadonly();
+  override readonly expenseTransactionList: Signal<PagedListState<LedgerTransaction>> = this.expenseTransactionPageState.asReadonly();
+  override readonly loanList: Signal<PagedListState<Loan>> = this.loanPageState.asReadonly();
+  override readonly obligationList: Signal<PagedListState<Obligation>> = this.obligationPageState.asReadonly();
+  override readonly dashboardSummary: Signal<DashboardSummary | null> = this.dashboardSummaryState;
+  override readonly statisticsSummary: Signal<StatisticsSummary | null> = this.statisticsSummaryState;
+  readonly categories = this.categorySource.asReadonly();
+  readonly transactions = this.transactionSource.asReadonly();
+  readonly loans = this.loanSource.asReadonly();
+  readonly obligations = this.obligationSource.asReadonly();
+
+  constructor() {
+    super();
+    this.load();
+    this.loadIncomeTransactionsPage(true);
+    this.loadExpenseTransactionsPage(true);
+  }
 
   override load(): void {
+    this.loadCategoriesPage(true);
+    this.loadTransactionsPage({}, true);
+    this.loadLoansPage(true);
+    this.loadObligationsPage(true);
+  }
+
+  override loadCategoriesPage(reset = false): void {
+    this.loadLocalPage(this.categoryPageState, this.categorySource(), reset);
+  }
+
+  override loadTransactionsPage(filters: TransactionListFilters, reset = false): void {
+    this.loadLocalPage(this.transactionPageState, filterTransactions(this.transactionSource(), filters), reset);
+  }
+
+  override loadIncomeTransactionsPage(reset = false): void {
+    this.loadLocalPage(this.incomeTransactionPageState, filterTransactions(this.transactionSource(), { type: 'income' }), reset);
+  }
+
+  override loadExpenseTransactionsPage(reset = false): void {
+    this.loadLocalPage(this.expenseTransactionPageState, filterTransactions(this.transactionSource(), { type: 'expense' }), reset);
+  }
+
+  override loadLoansPage(reset = false): void {
+    this.loadLocalPage(this.loanPageState, this.loanSource(), reset);
+  }
+
+  override loadObligationsPage(reset = false): void {
+    this.loadLocalPage(this.obligationPageState, this.obligationSource(), reset);
+  }
+
+  override refreshDashboardSummary(): void {
+    return;
+  }
+
+  override refreshStatisticsSummary(): void {
     return;
   }
 
   override addTransaction(transaction: CreateTransaction): void {
     const created = { ...transaction, id: createId('tx') };
-    this.transactionState.update((transactions) => [created, ...transactions]);
+    this.transactionSource.update((transactions) => [created, ...transactions]);
     this.applyLoanPayment(created);
+    this.reloadLoadedPages();
   }
 
   override addTransactions(transactions: readonly CreateTransaction[]): void {
@@ -104,12 +168,13 @@ export class InMemoryLedgerRepository extends LedgerRepository {
       id: createId('tx'),
     }));
 
-    this.transactionState.update((current) => [...createdTransactions, ...current]);
+    this.transactionSource.update((current) => [...createdTransactions, ...current]);
     createdTransactions.forEach((transaction) => this.applyLoanPayment(transaction));
+    this.reloadLoadedPages();
   }
 
   override addLoan(loan: CreateLoan): void {
-    this.loanState.update((loans) => [
+    this.loanSource.update((loans) => [
       {
         ...loan,
         id: createId('loan'),
@@ -117,10 +182,11 @@ export class InMemoryLedgerRepository extends LedgerRepository {
       },
       ...loans,
     ]);
+    this.reloadLoadedPages();
   }
 
   override updateLoan(updatedLoan: UpdateLoan): void {
-    this.loanState.update((loans) =>
+    this.loanSource.update((loans) =>
       loans.map((loan) =>
         loan.id === updatedLoan.id
           ? {
@@ -131,41 +197,46 @@ export class InMemoryLedgerRepository extends LedgerRepository {
           : loan,
       ),
     );
+    this.reloadLoadedPages();
   }
 
   override removeLoan(loanId: string): void {
-    this.loanState.update((loans) => loans.filter((loan) => loan.id !== loanId));
-    this.transactionState.update((transactions) =>
+    this.loanSource.update((loans) => loans.filter((loan) => loan.id !== loanId));
+    this.transactionSource.update((transactions) =>
       transactions.map((transaction) =>
         transaction.loanId === loanId ? { ...transaction, loanId: undefined } : transaction,
       ),
     );
+    this.reloadLoadedPages();
   }
 
   override addObligation(obligation: CreateObligation): void {
-    this.obligationState.update((obligations) => [
+    this.obligationSource.update((obligations) => [
       {
         ...obligation,
         id: createId('obligation'),
       },
       ...obligations,
     ]);
+    this.reloadLoadedPages();
   }
 
   override updateObligation(updatedObligation: UpdateObligation): void {
-    this.obligationState.update((obligations) =>
+    this.obligationSource.update((obligations) =>
       obligations.map((obligation) =>
         obligation.id === updatedObligation.id ? { ...obligation, ...updatedObligation } : obligation,
       ),
     );
+    this.reloadLoadedPages();
   }
 
   override removeObligation(obligationId: string): void {
-    this.obligationState.update((obligations) => obligations.filter((obligation) => obligation.id !== obligationId));
+    this.obligationSource.update((obligations) => obligations.filter((obligation) => obligation.id !== obligationId));
+    this.reloadLoadedPages();
   }
 
   override addCategory(category: CreateCategory): void {
-    this.categoryState.update((categories) => [
+    this.categorySource.update((categories) => [
       ...categories,
       {
         ...category,
@@ -173,16 +244,18 @@ export class InMemoryLedgerRepository extends LedgerRepository {
         id: createId('cat'),
       },
     ]);
+    this.reloadLoadedPages();
   }
 
   override removeCategory(categoryId: string): void {
-    const category = this.categoryState().find((item) => item.id === categoryId);
+    const category = this.categorySource().find((item) => item.id === categoryId);
 
     if (!category || category.isSystem) {
       return;
     }
 
-    this.categoryState.update((categories) => categories.filter((item) => item.id !== categoryId));
+    this.categorySource.update((categories) => categories.filter((item) => item.id !== categoryId));
+    this.reloadLoadedPages();
   }
 
   private applyLoanPayment(transaction: LedgerTransaction): void {
@@ -190,7 +263,7 @@ export class InMemoryLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.loanState.update((loans) =>
+    this.loanSource.update((loans) =>
       loans.map((loan) =>
         loan.id === transaction.loanId
           ? { ...loan, remainingAmount: Math.max(0, loan.remainingAmount - transaction.amount) }
@@ -198,6 +271,241 @@ export class InMemoryLedgerRepository extends LedgerRepository {
       ),
     );
   }
+
+  private loadLocalPage<T>(state: WritableSignal<PagedListState<T>>, source: readonly T[], reset: boolean): void {
+    const current = state();
+    const offset = reset ? 0 : Number(current.nextCursor || 0);
+    const pageSize = 30;
+    const items = source.slice(offset, offset + pageSize);
+    const nextOffset = offset + items.length;
+
+    state.set({
+      items: reset ? items : [...current.items, ...items],
+      nextCursor: nextOffset < source.length ? String(nextOffset) : '',
+      hasMore: nextOffset < source.length,
+      isLoading: false,
+      hasLoaded: true,
+      error: false,
+    });
+  }
+
+  private reloadLoadedPages(): void {
+    if (this.categoryPageState().hasLoaded) {
+      this.loadCategoriesPage(true);
+    }
+    if (this.transactionPageState().hasLoaded) {
+      this.loadTransactionsPage({}, true);
+    }
+    if (this.incomeTransactionPageState().hasLoaded) {
+      this.loadIncomeTransactionsPage(true);
+    }
+    if (this.expenseTransactionPageState().hasLoaded) {
+      this.loadExpenseTransactionsPage(true);
+    }
+    if (this.loanPageState().hasLoaded) {
+      this.loadLoansPage(true);
+    }
+    if (this.obligationPageState().hasLoaded) {
+      this.loadObligationsPage(true);
+    }
+  }
+}
+
+function filterTransactions(
+  transactions: readonly LedgerTransaction[],
+  filters: TransactionListFilters,
+): readonly LedgerTransaction[] {
+  const query = filters.search?.trim().toLowerCase() ?? '';
+  return [...transactions]
+    .filter(
+      (transaction) =>
+        (!filters.type || transaction.type === filters.type) &&
+        (!filters.categoryId || transaction.categoryId === filters.categoryId) &&
+        (!filters.startDate || transaction.date >= filters.startDate) &&
+        (!filters.endDate || transaction.date <= filters.endDate) &&
+        (!query || transaction.title.toLowerCase().includes(query)),
+    )
+    .sort((first, second) => second.date.localeCompare(first.date));
+}
+
+function buildDashboardSummary(
+  categories: readonly Category[],
+  transactions: readonly LedgerTransaction[],
+  loans: readonly Loan[],
+  obligations: readonly Obligation[],
+): DashboardSummary {
+  const month = currentMonthKey();
+  const monthTransactions = transactions.filter((transaction) => transaction.date.startsWith(month));
+  const monthIncome = sumTransactions(monthTransactions, 'income');
+  const monthExpense = sumTransactions(monthTransactions, 'expense');
+  const activeLoans = loans.filter((loan) => loan.remainingAmount > 0).sort((first, second) => first.dueDay - second.dueDay);
+
+  return {
+    month,
+    monthIncome,
+    monthExpense,
+    monthBalance: monthIncome - monthExpense,
+    loanDebt: loans.reduce((sum, loan) => sum + loan.remainingAmount, 0),
+    expenseBreakdown: categoryBreakdown(monthTransactions, 'expense', categories),
+    activeLoans,
+    upcomingObligations: [
+      ...activeLoans.map((loan) => ({
+        id: loan.id,
+        name: loan.name,
+        amount: Math.min(loan.monthlyPayment, loan.remainingAmount),
+        dueDay: loan.dueDay,
+        source: 'loan' as const,
+      })),
+      ...obligations.map((obligation) => ({
+        id: obligation.id,
+        name: obligation.name,
+        amount: obligation.amount,
+        dueDay: obligation.dueDay,
+        categoryId: obligation.categoryId,
+        source: 'custom' as const,
+      })),
+    ].sort((first, second) => first.dueDay - second.dueDay || first.name.localeCompare(second.name)),
+    recentTransactions: [...transactions].sort((first, second) => second.date.localeCompare(first.date)).slice(0, 6),
+  };
+}
+
+function buildStatisticsSummary(
+  categories: readonly Category[],
+  transactions: readonly LedgerTransaction[],
+  loans: readonly Loan[],
+): StatisticsSummary {
+  const totalIncome = sumTransactions(transactions, 'income');
+  const totalExpense = sumTransactions(transactions, 'expense');
+  const netBalance = totalIncome - totalExpense;
+  const firstTransactionDate = [...transactions].map((transaction) => transaction.date).sort()[0] ?? '';
+  const activeDays = new Set(transactions.map((transaction) => transaction.date)).size;
+  const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const originalDebt = loans.reduce((sum, loan) => sum + loan.originalAmount, 0);
+  const remainingDebt = loans.reduce((sum, loan) => sum + loan.remainingAmount, 0);
+  const maxPayment = Math.max(1, ...loans.map((loan) => loan.monthlyPayment));
+
+  return {
+    totalIncome,
+    totalExpense,
+    netBalance,
+    savingsRate: percentOf(netBalance, totalIncome),
+    firstTransactionDate,
+    activeDays,
+    averageDailyExpense: totalExpense / Math.max(1, daysBetween(firstTransactionDate, toInputDate(new Date()))),
+    averageTransaction: totalAmount / Math.max(1, transactions.length),
+    monthlyDebtPressure: loans.reduce((sum, loan) => sum + loan.monthlyPayment, 0),
+    loanPayoffShare: percentOf(originalDebt - remainingDebt, originalDebt),
+    monthStats: buildMonthStats(transactions),
+    expenseCategories: categoryBreakdown(transactions, 'expense', categories),
+    incomeCategories: categoryBreakdown(transactions, 'income', categories),
+    weekdays: buildWeekdays(transactions),
+    loanStats: loans.map((loan) => {
+      const paid = Math.max(0, loan.originalAmount - loan.remainingAmount);
+      return {
+        loan,
+        paid,
+        paidShare: percentOf(paid, loan.originalAmount),
+        pressureShare: percentOf(loan.monthlyPayment, maxPayment),
+      };
+    }),
+    topExpenses: [...transactions]
+      .filter((transaction) => transaction.type === 'expense')
+      .sort((first, second) => second.amount - first.amount)
+      .slice(0, 6)
+      .map((transaction) => {
+        const category = categoryById(categories, transaction.categoryId);
+        return { transaction, categoryName: category.name, categoryColor: category.color };
+      }),
+  };
+}
+
+function categoryBreakdown(
+  transactions: readonly LedgerTransaction[],
+  type: 'income' | 'expense',
+  categories: readonly Category[],
+) {
+  const values = new Map<string, { category: Category; amount: number; transactions: number }>();
+  let total = 0;
+  for (const transaction of transactions) {
+    if (transaction.type !== type) {
+      continue;
+    }
+    const category = categoryById(categories, transaction.categoryId);
+    const current = values.get(category.id) ?? { category, amount: 0, transactions: 0 };
+    current.amount += transaction.amount;
+    current.transactions += 1;
+    total += transaction.amount;
+    values.set(category.id, current);
+  }
+  return [...values.values()]
+    .map((value) => ({ ...value, share: percentOf(value.amount, total) }))
+    .sort((first, second) => second.amount - first.amount);
+}
+
+function buildMonthStats(transactions: readonly LedgerTransaction[]) {
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const now = new Date();
+    const date = new Date(now.getFullYear(), now.getMonth() - 11 + index, 1);
+    return { key: `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}`, income: 0, expense: 0, balance: 0 };
+  });
+  for (const transaction of transactions) {
+    const month = months.find((item) => item.key === transaction.date.slice(0, 7));
+    if (!month) {
+      continue;
+    }
+    if (transaction.type === 'income') {
+      month.income += transaction.amount;
+    } else {
+      month.expense += transaction.amount;
+    }
+    month.balance = month.income - month.expense;
+  }
+  return months;
+}
+
+function buildWeekdays(transactions: readonly LedgerTransaction[]) {
+  const weekdays = Array.from({ length: 7 }, (_, weekday) => ({ weekday, amount: 0, count: 0 }));
+  for (const transaction of transactions) {
+    if (transaction.type !== 'expense') {
+      continue;
+    }
+    const day = normalizeWeekday(new Date(`${transaction.date}T00:00:00`).getDay());
+    weekdays[day].amount += transaction.amount;
+    weekdays[day].count += 1;
+  }
+  return weekdays;
+}
+
+function categoryById(categories: readonly Category[], categoryId: string): Category {
+  return categories.find((category) => category.id === categoryId) ?? { id: 'unknown', name: 'Unknown', type: 'expense', color: '#5f6368' };
+}
+
+function sumTransactions(transactions: readonly LedgerTransaction[], type: 'income' | 'expense'): number {
+  return transactions.filter((transaction) => transaction.type === type).reduce((sum, transaction) => sum + transaction.amount, 0);
+}
+
+function currentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, '0')}`;
+}
+
+function toInputDate(date: Date): string {
+  return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`;
+}
+
+function daysBetween(start: string, end: string): number {
+  if (!start) {
+    return 1;
+  }
+  return Math.max(1, Math.ceil((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86_400_000) + 1);
+}
+
+function percentOf(value: number, total: number): number {
+  return total > 0 ? Math.max(0, Math.min(100, Math.round((value / total) * 100))) : 0;
+}
+
+function normalizeWeekday(day: number): number {
+  return day === 0 ? 6 : day - 1;
 }
 
 function currentMonthDate(day: number): string {

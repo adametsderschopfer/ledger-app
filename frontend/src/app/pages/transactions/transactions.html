@@ -1,6 +1,5 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">{{ i18n.t('transactions.journal') }}</p>
     <h1>{{ i18n.t('transactions.title') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openCreateDialog()">
@@ -84,7 +83,7 @@
 </mat-expansion-panel>
 
 <section class="results-summary" aria-live="polite">
-  <span>{{ i18n.t('transactions.shown') }} {{ visibleTransactions().length }} / {{ filteredTransactions().length }}</span>
+  <span>{{ i18n.t('transactions.shown') }} {{ visibleTransactions().length }}</span>
   @if (activeFilterCount() > 0) {
     <span>{{ activeFilterCount() }}</span>
   }
@@ -93,17 +92,17 @@
 <app-transaction-groups
   [groups]="visibleGroups()"
   [emptyText]="i18n.t('transactions.empty')"
-  [isLoading]="ledger.isLoading()"
-  [hasLoaded]="ledger.hasLoaded()"
+  [isLoading]="ledger.transactionList().isLoading"
+  [hasLoaded]="ledger.transactionList().hasLoaded"
 />
 
 @if (hasMore()) {
   <div #loadMoreAnchor class="load-more">
-    <button mat-stroked-button type="button" (click)="loadMore()">
+    <button mat-stroked-button type="button" [disabled]="isPageLoading()" (click)="loadMore()">
       <mat-icon>expand_more</mat-icon>
       {{ i18n.t('transactions.loadMore') }}
     </button>
   </div>
-} @else if (filteredTransactions().length > 0) {
+} @else if (visibleTransactions().length > 0) {
   <p class="list-end">{{ i18n.t('transactions.allDone') }}</p>
 }

@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  PLATFORM_ID,
+  computed,
+  effect,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,7 +32,29 @@ export class Loans {
   readonly ledger = inject(LedgerFacade);
   readonly i18n = inject(AppLanguageService);
   private readonly dialog = inject(MatDialog);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly loadMoreAnchor = viewChild<ElementRef<HTMLElement>>('loadMoreAnchor');
   readonly columns = ['name', 'payment', 'dueDay', 'remaining', 'progress', 'actions'];
+  readonly hasMore = computed(() => this.ledger.loanList().hasMore);
+  readonly isPageLoading = computed(() => this.ledger.loanList().isLoading);
+
+  constructor() {
+    this.ledger.loadLoansPage(true);
+
+    effect((onCleanup) => {
+      const anchor = this.loadMoreAnchor();
+      if (!anchor || !this.hasMore() || !isPlatformBrowser(this.platformId)) {
+        return;
+      }
+      const observer = new IntersectionObserver(([entry]) => {
+        if (entry?.isIntersecting) {
+          this.loadMore();
+        }
+      }, { rootMargin: '240px 0px' });
+      observer.observe(anchor.nativeElement);
+      onCleanup(() => observer.disconnect());
+    });
+  }
 
   openCreateDialog(): void {
     const dialogRef = this.dialog.open(LoanDialog, {
@@ -67,5 +99,11 @@ export class Loans {
     }
 
     return Math.round(((originalAmount - remainingAmount) / originalAmount) * 100);
+  }
+
+  loadMore(): void {
+    if (this.hasMore() && !this.isPageLoading()) {
+      this.ledger.loadLoansPage(false);
+    }
   }
 }

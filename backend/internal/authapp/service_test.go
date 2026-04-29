@@ -12,8 +12,9 @@ import (
 )
 
 type fakeAuthStore struct {
-	admin   domain.User
-	created domain.User
+	admin       domain.User
+	regularUser domain.User
+	created     domain.User
 }
 
 func (s *fakeAuthStore) Login(context.Context, domain.LoginCredentials) (domain.AuthSession, error) {
@@ -23,6 +24,9 @@ func (s *fakeAuthStore) Logout(context.Context, string) error { return nil }
 func (s *fakeAuthStore) ValidateSession(_ context.Context, token string) (domain.User, error) {
 	if token == "admin-token" {
 		return s.admin, nil
+	}
+	if token == "user-token" {
+		return s.regularUser, nil
 	}
 	return domain.User{}, ErrInvalidCredentials
 }
@@ -35,8 +39,8 @@ func (s *fakeAuthStore) UpdateProfile(_ context.Context, _ string, profile domai
 func (s *fakeAuthStore) UpdatePassword(context.Context, string, domain.UpdatePassword) error {
 	return nil
 }
-func (s *fakeAuthStore) ListUsers(context.Context) ([]domain.User, error) {
-	return []domain.User{s.admin}, nil
+func (s *fakeAuthStore) ListUsers(context.Context, domain.ListOptions) (domain.PagedResponse[domain.User], error) {
+	return domain.PagedResponse[domain.User]{Items: []domain.User{s.admin}}, nil
 }
 func (s *fakeAuthStore) CreateUser(_ context.Context, user domain.CreateUser) (domain.User, error) {
 	s.created = domain.User{ID: "created-user", Name: user.Name, Email: user.Email, Role: user.Role, IsActive: true}
@@ -84,5 +88,25 @@ func TestCreateUserRequiresAdminAndReturnsCreatedUser(t *testing.T) {
 	}
 	if store.created.ID != "created-user" {
 		t.Fatalf("expected store to create user, got %+v", store.created)
+	}
+}
+
+func TestCreateUserRejectsNonAdmin(t *testing.T) {
+	store := &fakeAuthStore{
+		regularUser: domain.User{ID: "regular-user", Name: "User", Email: "user@ledger.local", Role: domain.RoleUser, IsActive: true},
+	}
+	service := NewService(store)
+	body, _ := json.Marshal(domain.CreateUser{Name: "User", Email: "new@ledger.local", Password: "1234", Role: domain.RoleUser})
+	request := httptest.NewRequest(http.MethodPost, "/api/server/users", bytes.NewReader(body))
+	request.Header.Set("Authorization", "Bearer user-token")
+	response := httptest.NewRecorder()
+
+	service.Routes().ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d: %s", response.Code, response.Body.String())
+	}
+	if store.created.ID != "" {
+		t.Fatalf("expected store not to create user, got %+v", store.created)
 	}
 }

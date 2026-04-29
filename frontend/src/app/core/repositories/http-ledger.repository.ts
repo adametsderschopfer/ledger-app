@@ -1,39 +1,67 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable, Signal, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Injectable, Signal, computed, inject, signal } from '@angular/core';
+import { Observable } from 'rxjs';
+import { AppLanguageService } from '../i18n/app-language.service';
 import {
   Category,
   CreateCategory,
   CreateLoan,
   CreateObligation,
   CreateTransaction,
+  DashboardSummary,
   LedgerTransaction,
   Loan,
   Obligation,
+  PagedListState,
+  PagedResponse,
+  StatisticsSummary,
+  TransactionListFilters,
   UpdateLoan,
   UpdateObligation,
+  emptyPagedListState,
 } from '../models/ledger.models';
+import { AppNotificationService } from '../notifications/app-notification.service';
 import { LedgerRepository } from './ledger.repository';
+
+type TransactionFeed = 'all' | 'income' | 'expense';
+
+const pageSize = 30;
 
 @Injectable()
 export class HttpLedgerRepository extends LedgerRepository {
   private readonly http = inject(HttpClient);
+  private readonly i18n = inject(AppLanguageService);
+  private readonly notifications = inject(AppNotificationService);
   private readonly apiUrl = '/api/ledger';
 
-  private readonly categoryState = signal<readonly Category[]>([]);
-  private readonly transactionState = signal<readonly LedgerTransaction[]>([]);
-  private readonly loanState = signal<readonly Loan[]>([]);
-  private readonly obligationState = signal<readonly Obligation[]>([]);
-  private readonly isLoadingState = signal(false);
+  private readonly categoryState = signal<PagedListState<Category>>(emptyPagedListState());
+  private readonly transactionState = signal<PagedListState<LedgerTransaction>>(emptyPagedListState());
+  private readonly incomeTransactionState = signal<PagedListState<LedgerTransaction>>(emptyPagedListState());
+  private readonly expenseTransactionState = signal<PagedListState<LedgerTransaction>>(emptyPagedListState());
+  private readonly loanState = signal<PagedListState<Loan>>(emptyPagedListState());
+  private readonly obligationState = signal<PagedListState<Obligation>>(emptyPagedListState());
+  private readonly dashboardSummaryState = signal<DashboardSummary | null>(null);
+  private readonly statisticsSummaryState = signal<StatisticsSummary | null>(null);
   private readonly hasLoadedState = signal(false);
+  private readonly transactionFilters = signal<TransactionListFilters>({});
   private loadRequestId = 0;
 
-  override readonly isLoading: Signal<boolean> = this.isLoadingState.asReadonly();
+  override readonly categoryList: Signal<PagedListState<Category>> = this.categoryState.asReadonly();
+  override readonly transactionList: Signal<PagedListState<LedgerTransaction>> = this.transactionState.asReadonly();
+  override readonly incomeTransactionList: Signal<PagedListState<LedgerTransaction>> = this.incomeTransactionState.asReadonly();
+  override readonly expenseTransactionList: Signal<PagedListState<LedgerTransaction>> = this.expenseTransactionState.asReadonly();
+  override readonly loanList: Signal<PagedListState<Loan>> = this.loanState.asReadonly();
+  override readonly obligationList: Signal<PagedListState<Obligation>> = this.obligationState.asReadonly();
+  override readonly dashboardSummary: Signal<DashboardSummary | null> = this.dashboardSummaryState.asReadonly();
+  override readonly statisticsSummary: Signal<StatisticsSummary | null> = this.statisticsSummaryState.asReadonly();
+  override readonly isLoading: Signal<boolean> = computed(
+    () =>
+      this.categoryState().isLoading ||
+      this.transactionState().isLoading ||
+      this.loanState().isLoading ||
+      this.obligationState().isLoading,
+  );
   override readonly hasLoaded: Signal<boolean> = this.hasLoadedState.asReadonly();
-  override readonly categories: Signal<readonly Category[]> = this.categoryState.asReadonly();
-  override readonly transactions: Signal<readonly LedgerTransaction[]> = this.transactionState.asReadonly();
-  override readonly loans: Signal<readonly Loan[]> = this.loanState.asReadonly();
-  override readonly obligations: Signal<readonly Obligation[]> = this.obligationState.asReadonly();
 
   override load(): void {
     const headers = this.authHeaders();
@@ -41,45 +69,83 @@ export class HttpLedgerRepository extends LedgerRepository {
     this.loadRequestId = requestId;
 
     if (!headers) {
-      this.categoryState.set([]);
-      this.transactionState.set([]);
-      this.loanState.set([]);
-      this.obligationState.set([]);
-      this.hasLoadedState.set(false);
-      this.isLoadingState.set(false);
+      this.clear();
       return;
     }
 
-    this.isLoadingState.set(true);
+    this.loadCategoriesPage(true);
+    this.loadTransactionsPage({}, true);
+    this.loadLoansPage(true);
+    this.loadObligationsPage(true);
+    this.refreshDashboardSummary();
 
-    forkJoin({
-      categories: this.http.get<readonly Category[]>(`${this.apiUrl}/categories`, { headers }),
-      transactions: this.http.get<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions`, { headers }),
-      loans: this.http.get<readonly Loan[]>(`${this.apiUrl}/loans`, { headers }),
-      obligations: this.http.get<readonly Obligation[]>(`${this.apiUrl}/obligations`, { headers }),
-    }).subscribe({
-      next: ({ categories, transactions, loans, obligations }) => {
-        if (requestId !== this.loadRequestId) {
-          return;
-        }
-
-        this.categoryState.set(categories ?? []);
-        this.transactionState.set(transactions ?? []);
-        this.loanState.set(loans ?? []);
-        this.obligationState.set(obligations ?? []);
+    queueMicrotask(() => {
+      if (requestId === this.loadRequestId) {
         this.hasLoadedState.set(true);
-      },
-      error: () => {
-        if (requestId === this.loadRequestId) {
-          this.isLoadingState.set(false);
-        }
-      },
-      complete: () => {
-        if (requestId === this.loadRequestId) {
-          this.isLoadingState.set(false);
-        }
-      },
+      }
     });
+  }
+
+  override loadCategoriesPage(reset = false): void {
+    this.loadPaged(this.categoryState, `${this.apiUrl}/categories`, {}, reset);
+  }
+
+  override loadTransactionsPage(filters: TransactionListFilters, reset = false): void {
+    this.transactionFilters.set(filters);
+    this.loadTransactionFeed('all', filters, reset);
+  }
+
+  override loadIncomeTransactionsPage(reset = false): void {
+    this.loadTransactionFeed('income', { type: 'income' }, reset);
+  }
+
+  override loadExpenseTransactionsPage(reset = false): void {
+    this.loadTransactionFeed('expense', { type: 'expense' }, reset);
+  }
+
+  override loadLoansPage(reset = false): void {
+    this.loadPaged(this.loanState, `${this.apiUrl}/loans`, {}, reset);
+  }
+
+  override loadObligationsPage(reset = false): void {
+    this.loadPaged(this.obligationState, `${this.apiUrl}/obligations`, {}, reset);
+  }
+
+  override refreshDashboardSummary(): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      this.dashboardSummaryState.set(null);
+      return;
+    }
+
+    const month = currentMonthKey();
+    this.http
+      .get<DashboardSummary>(`${this.apiUrl}/dashboard-summary`, {
+        headers,
+        params: new HttpParams().set('month', month),
+      })
+      .subscribe({
+        next: (summary) => this.dashboardSummaryState.set(summary),
+        error: () => this.notifyLoadFailed(),
+      });
+  }
+
+  override refreshStatisticsSummary(): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      this.statisticsSummaryState.set(null);
+      return;
+    }
+
+    this.http
+      .get<StatisticsSummary>(`${this.apiUrl}/statistics-summary`, {
+        headers,
+        params: new HttpParams().set('months', 12),
+      })
+      .subscribe({
+        next: (summary) => this.statisticsSummaryState.set(summary),
+        error: () => this.notifyLoadFailed(),
+      });
   }
 
   override addTransaction(transaction: CreateTransaction): void {
@@ -88,12 +154,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.post<LedgerTransaction>(`${this.apiUrl}/transactions`, transaction, { headers }).subscribe((created) => {
-      this.transactionState.update((transactions) => [created, ...transactions]);
-      if (created.loanId) {
-        this.loadLoans();
-      }
-    });
+    this.commitMutation(this.http.post<LedgerTransaction>(`${this.apiUrl}/transactions`, transaction, { headers }));
   }
 
   override addTransactions(transactions: readonly CreateTransaction[]): void {
@@ -104,11 +165,9 @@ export class HttpLedgerRepository extends LedgerRepository {
 
     this.http
       .post<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions/batch`, { transactions }, { headers })
-      .subscribe((created) => {
-        this.transactionState.update((current) => [...created, ...current]);
-        if (created.some((transaction) => transaction.loanId)) {
-          this.loadLoans();
-        }
+      .subscribe({
+        next: () => this.reloadLoadedData(),
+        error: () => this.notifySaveFailed(),
       });
   }
 
@@ -118,9 +177,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.post<Loan>(`${this.apiUrl}/loans`, loan, { headers }).subscribe((created) => {
-      this.loanState.update((loans) => [created, ...loans]);
-    });
+    this.commitMutation(this.http.post<Loan>(`${this.apiUrl}/loans`, loan, { headers }));
   }
 
   override updateLoan(loan: UpdateLoan): void {
@@ -129,9 +186,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.put<Loan>(`${this.apiUrl}/loans/${loan.id}`, loan, { headers }).subscribe((updated) => {
-      this.loanState.update((loans) => loans.map((item) => (item.id === updated.id ? updated : item)));
-    });
+    this.commitMutation(this.http.put<Loan>(`${this.apiUrl}/loans/${loan.id}`, loan, { headers }));
   }
 
   override removeLoan(loanId: string): void {
@@ -140,14 +195,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.delete<void>(`${this.apiUrl}/loans/${loanId}`, { headers }).subscribe(() => {
-      this.loanState.update((loans) => loans.filter((loan) => loan.id !== loanId));
-      this.transactionState.update((transactions) =>
-        transactions.map((transaction) =>
-          transaction.loanId === loanId ? { ...transaction, loanId: undefined } : transaction,
-        ),
-      );
-    });
+    this.commitMutation(this.http.delete<void>(`${this.apiUrl}/loans/${loanId}`, { headers }));
   }
 
   override addObligation(obligation: CreateObligation): void {
@@ -156,9 +204,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.post<Obligation>(`${this.apiUrl}/obligations`, obligation, { headers }).subscribe((created) => {
-      this.obligationState.update((obligations) => [created, ...obligations]);
-    });
+    this.commitMutation(this.http.post<Obligation>(`${this.apiUrl}/obligations`, obligation, { headers }));
   }
 
   override updateObligation(obligation: UpdateObligation): void {
@@ -169,10 +215,9 @@ export class HttpLedgerRepository extends LedgerRepository {
 
     this.http
       .put<Obligation>(`${this.apiUrl}/obligations/${obligation.id}`, obligation, { headers })
-      .subscribe((updated) => {
-        this.obligationState.update((obligations) =>
-          obligations.map((item) => (item.id === updated.id ? updated : item)),
-        );
+      .subscribe({
+        next: () => this.reloadLoadedData(),
+        error: () => this.notifySaveFailed(),
       });
   }
 
@@ -182,9 +227,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.delete<void>(`${this.apiUrl}/obligations/${obligationId}`, { headers }).subscribe(() => {
-      this.obligationState.update((obligations) => obligations.filter((obligation) => obligation.id !== obligationId));
-    });
+    this.commitMutation(this.http.delete<void>(`${this.apiUrl}/obligations/${obligationId}`, { headers }));
   }
 
   override addCategory(category: CreateCategory): void {
@@ -193,9 +236,7 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.post<Category>(`${this.apiUrl}/categories`, category, { headers }).subscribe((created) => {
-      this.categoryState.update((categories) => [...categories, created]);
-    });
+    this.commitMutation(this.http.post<Category>(`${this.apiUrl}/categories`, category, { headers }));
   }
 
   override removeCategory(categoryId: string): void {
@@ -204,57 +245,123 @@ export class HttpLedgerRepository extends LedgerRepository {
       return;
     }
 
-    this.http.delete<void>(`${this.apiUrl}/categories/${categoryId}`, { headers }).subscribe(() => {
-      this.categoryState.update((categories) => categories.filter((category) => category.id !== categoryId));
-    });
+    this.commitMutation(this.http.delete<void>(`${this.apiUrl}/categories/${categoryId}`, { headers }));
   }
 
-  private loadCategories(): void {
+  private loadTransactionFeed(feed: TransactionFeed, filters: TransactionListFilters, reset: boolean): void {
+    const state =
+      feed === 'income'
+        ? this.incomeTransactionState
+        : feed === 'expense'
+          ? this.expenseTransactionState
+          : this.transactionState;
+    this.loadPaged(state, `${this.apiUrl}/transactions`, filters, reset);
+  }
+
+  private loadPaged<T>(
+    state: ReturnType<typeof signal<PagedListState<T>>>,
+    url: string,
+    query: TransactionListFilters,
+    reset: boolean,
+  ): void {
     const headers = this.authHeaders();
     if (!headers) {
-      this.categoryState.set([]);
+      state.set(emptyPagedListState());
       return;
     }
 
-    this.http.get<readonly Category[]>(`${this.apiUrl}/categories`, { headers }).subscribe((categories) => {
-      this.categoryState.set(categories ?? []);
-    });
-  }
-
-  private loadTransactions(): void {
-    const headers = this.authHeaders();
-    if (!headers) {
-      this.transactionState.set([]);
+    const current = state();
+    if (!reset && (!current.hasMore || current.isLoading)) {
       return;
     }
 
-    this.http.get<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions`, { headers }).subscribe((transactions) => {
-      this.transactionState.set(transactions ?? []);
+    const nextCursor = reset ? '' : current.nextCursor;
+    state.set({
+      ...(reset ? emptyPagedListState<T>() : current),
+      isLoading: true,
+      error: false,
+    });
+
+    this.http
+      .get<PagedResponse<T>>(url, {
+        headers,
+        params: this.listParams(query, nextCursor),
+      })
+      .subscribe({
+        next: (page) => {
+          state.update((latest) => ({
+            items: reset ? page.items : dedupeById([...latest.items, ...page.items]),
+            nextCursor: page.nextCursor ?? '',
+            hasMore: page.hasMore,
+            isLoading: false,
+            hasLoaded: true,
+            error: false,
+          }));
+        },
+        error: () => {
+          state.update((latest) => ({
+            ...latest,
+            isLoading: false,
+            hasLoaded: true,
+            error: true,
+          }));
+          this.notifyLoadFailed();
+        },
+      });
+  }
+
+  private listParams(query: TransactionListFilters, cursor: string): HttpParams {
+    let params = new HttpParams().set('limit', pageSize);
+    if (cursor) {
+      params = params.set('cursor', cursor);
+    }
+    for (const [key, value] of Object.entries(query)) {
+      if (value) {
+        params = params.set(key, value);
+      }
+    }
+    return params;
+  }
+
+  private reloadLoadedData(): void {
+    this.loadCategoriesPage(true);
+    this.loadTransactionsPage(this.transactionFilters(), true);
+    if (this.incomeTransactionState().hasLoaded) {
+      this.loadIncomeTransactionsPage(true);
+    }
+    if (this.expenseTransactionState().hasLoaded) {
+      this.loadExpenseTransactionsPage(true);
+    }
+    this.loadLoansPage(true);
+    this.loadObligationsPage(true);
+    this.refreshDashboardSummary();
+  }
+
+  private commitMutation<T>(request: Observable<T>): void {
+    request.subscribe({
+      next: () => this.reloadLoadedData(),
+      error: () => this.notifySaveFailed(),
     });
   }
 
-  private loadObligations(): void {
-    const headers = this.authHeaders();
-    if (!headers) {
-      this.obligationState.set([]);
-      return;
-    }
-
-    this.http.get<readonly Obligation[]>(`${this.apiUrl}/obligations`, { headers }).subscribe((obligations) => {
-      this.obligationState.set(obligations ?? []);
-    });
+  private notifyLoadFailed(): void {
+    this.notifications.error(this.i18n.t('notification.loadFailed'));
   }
 
-  private loadLoans(): void {
-    const headers = this.authHeaders();
-    if (!headers) {
-      this.loanState.set([]);
-      return;
-    }
+  private notifySaveFailed(): void {
+    this.notifications.error(this.i18n.t('notification.saveFailed'));
+  }
 
-    this.http.get<readonly Loan[]>(`${this.apiUrl}/loans`, { headers }).subscribe((loans) => {
-      this.loanState.set(loans ?? []);
-    });
+  private clear(): void {
+    this.categoryState.set(emptyPagedListState());
+    this.transactionState.set(emptyPagedListState());
+    this.incomeTransactionState.set(emptyPagedListState());
+    this.expenseTransactionState.set(emptyPagedListState());
+    this.loanState.set(emptyPagedListState());
+    this.obligationState.set(emptyPagedListState());
+    this.dashboardSummaryState.set(null);
+    this.statisticsSummaryState.set(null);
+    this.hasLoadedState.set(false);
   }
 
   private authHeaders(): HttpHeaders | undefined {
@@ -265,4 +372,21 @@ export class HttpLedgerRepository extends LedgerRepository {
     const token = sessionStorage.getItem('ledger-auth-token');
     return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
   }
+}
+
+function dedupeById<T>(items: readonly T[]): readonly T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const id = typeof item === 'object' && item !== null && 'id' in item ? String(item.id) : '';
+    if (!id || seen.has(id)) {
+      return false;
+    }
+    seen.add(id);
+    return true;
+  });
+}
+
+function currentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, '0')}`;
 }

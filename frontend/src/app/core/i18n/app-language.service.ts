@@ -35,7 +35,6 @@ export type TranslationKey =
   | 'auth.admin'
   | 'auth.login'
   | 'auth.loginError'
-  | 'auth.mock'
   | 'auth.password'
   | 'auth.subtitle'
   | 'auth.user'
@@ -52,7 +51,6 @@ export type TranslationKey =
   | 'dashboard.balanceHelp'
   | 'dashboard.categoryExpenses'
   | 'dashboard.categoryLabel'
-  | 'dashboard.currentMonth'
   | 'dashboard.emptyExpenses'
   | 'dashboard.incomeHelp'
   | 'dashboard.loans'
@@ -86,7 +84,6 @@ export type TranslationKey =
   | 'loan.paid'
   | 'loan.paymentTitle'
   | 'loan.remaining'
-  | 'loan.sectionEyebrow'
   | 'loan.title'
   | 'obligation.addTitle'
   | 'obligation.amount'
@@ -104,6 +101,9 @@ export type TranslationKey =
   | 'nav.settings'
   | 'nav.statistics'
   | 'nav.transactions'
+  | 'notification.loadFailed'
+  | 'notification.loginSuccess'
+  | 'notification.saveFailed'
   | 'settings.categories'
   | 'settings.expenseCategories'
   | 'settings.incomeCategories'
@@ -111,7 +111,6 @@ export type TranslationKey =
   | 'settings.server'
   | 'settings.serverHelp'
   | 'settings.language'
-  | 'settings.subtitle'
   | 'settings.theme'
   | 'settings.themeHelp'
   | 'settings.title'
@@ -143,7 +142,6 @@ export type TranslationKey =
   | 'server.name'
   | 'server.role'
   | 'server.title'
-  | 'stats.analytics'
   | 'stats.title'
   | 'stats.openJournal'
   | 'stats.loading'
@@ -194,14 +192,11 @@ export type TranslationKey =
   | 'transactions.endDate'
   | 'transactions.expense'
   | 'transactions.expensesEmpty'
-  | 'transactions.expensesEyebrow'
   | 'transactions.expensesTitle'
   | 'transactions.filters'
   | 'transactions.income'
   | 'transactions.incomesEmpty'
-  | 'transactions.incomesEyebrow'
   | 'transactions.incomesTitle'
-  | 'transactions.journal'
   | 'transactions.loadMore'
   | 'transactions.search'
   | 'transactions.shown'
@@ -246,7 +241,6 @@ const translationsRu: Record<TranslationKey, string> = {
   'auth.admin': 'Администратор',
   'auth.login': 'Войти',
   'auth.loginError': 'Пользователь не найден или пароль слишком короткий.',
-  'auth.mock': 'Мок: admin@ledger.local / admin',
   'auth.password': 'Пароль',
   'auth.subtitle': 'Вход в учет финансов',
   'auth.user': 'Пользователь',
@@ -264,7 +258,6 @@ const translationsRu: Record<TranslationKey, string> = {
   'dashboard.balanceHelp': 'Доходы минус расходы',
   'dashboard.categoryExpenses': 'Расходы по категориям',
   'dashboard.categoryLabel': 'категория',
-  'dashboard.currentMonth': 'Текущий месяц',
   'dashboard.emptyExpenses': 'За этот месяц расходов пока нет.',
   'dashboard.incomeHelp': 'Доходы за месяц',
   'dashboard.loans': 'Кредиты',
@@ -299,7 +292,6 @@ const translationsRu: Record<TranslationKey, string> = {
   'loan.paid': 'Погашено',
   'loan.paymentTitle': 'Платеж по кредиту',
   'loan.remaining': 'Остаток',
-  'loan.sectionEyebrow': 'Кредитный контур',
   'loan.title': 'Кредиты',
   'obligation.addTitle': 'Добавить обязательный платеж',
   'obligation.amount': 'Сумма платежа',
@@ -317,6 +309,9 @@ const translationsRu: Record<TranslationKey, string> = {
   'nav.settings': 'Настройки',
   'nav.statistics': 'Статистика',
   'nav.transactions': 'История операций',
+  'notification.loadFailed': 'Не удалось загрузить часть данных. Остальные разделы продолжат работать.',
+  'notification.loginSuccess': 'Вы вошли в Ledger.',
+  'notification.saveFailed': 'Не удалось сохранить изменения.',
   'settings.categories': 'Категории и параметры учета',
   'settings.expenseCategories': 'Расходы',
   'settings.incomeCategories': 'Доходы',
@@ -324,7 +319,6 @@ const translationsRu: Record<TranslationKey, string> = {
   'settings.server': 'Управление сервером',
   'settings.serverHelp': 'Пользователи, роли и доступы доступны администраторам.',
   'settings.language': 'Язык интерфейса',
-  'settings.subtitle': 'Настройки',
   'settings.theme': 'Темная тема',
   'settings.themeHelp': 'Цветовая схема применяется ко всему интерфейсу и сохраняется в браузере.',
   'settings.title': 'Настройки',
@@ -356,7 +350,6 @@ const translationsRu: Record<TranslationKey, string> = {
   'server.name': 'Имя',
   'server.role': 'Роль',
   'server.title': 'Пользователи и роли',
-  'stats.analytics': 'Аналитика',
   'stats.title': 'Статистика финансов',
   'stats.openJournal': 'Открыть журнал',
   'stats.loading': 'Загрузка статистики',
@@ -408,14 +401,11 @@ const translationsRu: Record<TranslationKey, string> = {
   'transactions.endDate': 'По дату',
   'transactions.expense': 'Расходы',
   'transactions.expensesEmpty': 'Расходов пока нет.',
-  'transactions.expensesEyebrow': 'Списания',
   'transactions.expensesTitle': 'Расходы',
   'transactions.filters': 'Фильтры истории операций',
   'transactions.income': 'Доходы',
   'transactions.incomesEmpty': 'Доходов пока нет.',
-  'transactions.incomesEyebrow': 'Доходы',
   'transactions.incomesTitle': 'Доходы',
-  'transactions.journal': 'Журнал',
   'transactions.loadMore': 'Показать еще',
   'transactions.search': 'Поиск',
   'transactions.shown': 'Показано',
@@ -461,7 +451,6 @@ const translationsEn: Record<TranslationKey, string> = {
   'auth.admin': 'Administrator',
   'auth.login': 'Sign in',
   'auth.loginError': 'User was not found or the password is too short.',
-  'auth.mock': 'Demo: admin@ledger.local / admin',
   'auth.password': 'Password',
   'auth.subtitle': 'Sign in to finance workspace',
   'auth.user': 'User',
@@ -479,7 +468,6 @@ const translationsEn: Record<TranslationKey, string> = {
   'dashboard.balanceHelp': 'Income minus expenses',
   'dashboard.categoryExpenses': 'Expenses by category',
   'dashboard.categoryLabel': 'category',
-  'dashboard.currentMonth': 'Current month',
   'dashboard.emptyExpenses': 'No expenses this month yet.',
   'dashboard.incomeHelp': 'Income this month',
   'dashboard.loans': 'Loans',
@@ -514,7 +502,6 @@ const translationsEn: Record<TranslationKey, string> = {
   'loan.paid': 'Paid',
   'loan.paymentTitle': 'Loan payment',
   'loan.remaining': 'Remaining',
-  'loan.sectionEyebrow': 'Credit area',
   'loan.title': 'Loans',
   'obligation.addTitle': 'Add required payment',
   'obligation.amount': 'Payment amount',
@@ -532,6 +519,9 @@ const translationsEn: Record<TranslationKey, string> = {
   'nav.settings': 'Settings',
   'nav.statistics': 'Statistics',
   'nav.transactions': 'Transaction history',
+  'notification.loadFailed': 'Some data could not be loaded. Other sections will keep working.',
+  'notification.loginSuccess': 'Signed in to Ledger.',
+  'notification.saveFailed': 'Could not save changes.',
   'settings.categories': 'Categories and accounting settings',
   'settings.expenseCategories': 'Expenses',
   'settings.incomeCategories': 'Income',
@@ -539,7 +529,6 @@ const translationsEn: Record<TranslationKey, string> = {
   'settings.server': 'Server management',
   'settings.serverHelp': 'Users, roles, and access are available to administrators.',
   'settings.language': 'Interface language',
-  'settings.subtitle': 'Settings',
   'settings.theme': 'Dark theme',
   'settings.themeHelp':
     'The color scheme applies to the whole interface and is saved in this browser.',
@@ -572,7 +561,6 @@ const translationsEn: Record<TranslationKey, string> = {
   'server.name': 'Name',
   'server.role': 'Role',
   'server.title': 'Users and roles',
-  'stats.analytics': 'Analytics',
   'stats.title': 'Financial statistics',
   'stats.openJournal': 'Open journal',
   'stats.loading': 'Loading statistics',
@@ -624,14 +612,11 @@ const translationsEn: Record<TranslationKey, string> = {
   'transactions.endDate': 'End date',
   'transactions.expense': 'Expenses',
   'transactions.expensesEmpty': 'No expenses yet.',
-  'transactions.expensesEyebrow': 'Charges',
   'transactions.expensesTitle': 'Expenses',
   'transactions.filters': 'Transaction history filters',
   'transactions.income': 'Income',
   'transactions.incomesEmpty': 'No income yet.',
-  'transactions.incomesEyebrow': 'Income',
   'transactions.incomesTitle': 'Income',
-  'transactions.journal': 'Journal',
   'transactions.loadMore': 'Load more',
   'transactions.search': 'Search',
   'transactions.shown': 'Shown',

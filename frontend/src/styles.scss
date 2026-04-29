@@ -158,6 +158,25 @@ h2 {
   transform: translateX(-100%);
 }
 
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: 18px 0 8px;
+}
+
+.list-end {
+  margin: 18px 0 0;
+  color: var(--ledger-muted);
+  text-align: center;
+}
+
+.ledger-table th.mat-mdc-header-cell {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--mat-sys-surface-container-low);
+}
+
 @keyframes ledger-skeleton-shimmer {
   to {
     transform: translateX(100%);

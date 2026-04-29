@@ -8,7 +8,8 @@ export class AuthFacade {
   private readonly repository = inject(AuthRepository);
 
   readonly currentUser = this.repository.currentUser;
-  readonly users = this.repository.users;
+  readonly userList = this.repository.userList;
+  readonly users = computed(() => this.userList().items);
   readonly usersLoading = this.repository.usersLoading;
   readonly usersLoaded = this.repository.usersLoaded;
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
@@ -18,8 +19,8 @@ export class AuthFacade {
     this.repository.loadCurrentUser();
   }
 
-  loadUsers(): void {
-    this.repository.loadUsers();
+  loadUsers(reset = false): void {
+    this.repository.loadUsers(reset);
   }
 
   login(credentials: LoginCredentials): Observable<boolean> {

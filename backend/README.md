@@ -107,8 +107,28 @@ The gateway exposes:
 - `GET /health`
 - `GET /api/app/config`
 - `/api/auth/*` for login, logout, current user, profile updates, and password changes.
-- `/api/ledger/*` for categories, transactions, loans, and obligations.
+- `/api/ledger/*` for categories, transactions, loans, obligations, dashboard summary, and statistics summary.
 - `/api/server/*`
+
+Ledger list endpoints return cursor pages:
+
+```json
+{
+  "items": [],
+  "nextCursor": "opaque-cursor",
+  "hasMore": false
+}
+```
+
+Supported list query parameters:
+
+- `limit` and `cursor` on ledger lists and `/api/server/users`.
+- `type`, `categoryId`, `startDate`, `endDate`, and `search` on `/api/ledger/transactions`.
+
+Summary endpoints:
+
+- `GET /api/ledger/dashboard-summary?month=YYYY-MM`
+- `GET /api/ledger/statistics-summary?months=12`
 
 ## Production Notes
 

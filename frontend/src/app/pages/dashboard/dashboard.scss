@@ -40,20 +40,11 @@
   text-align: right;
 }
 
-.eyebrow,
 .section-title span,
 .metric span,
 .metric small,
 .loan-row span {
   color: var(--ledger-muted);
-}
-
-.eyebrow {
-  margin: 0 0 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .metrics {

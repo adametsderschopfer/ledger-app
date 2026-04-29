@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,13 +21,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { AppLanguageService } from '../../core/i18n/app-language.service';
 import { LedgerFacade } from '../../core/ledger.facade';
-import { TransactionType } from '../../core/models/ledger.models';
+import { TransactionListFilters, TransactionType } from '../../core/models/ledger.models';
 import { TransactionDialog } from '../../shared/transaction-dialog/transaction-dialog';
 import { TransactionGroups } from '../../shared/transaction-groups/transaction-groups';
 
 type TransactionTypeFilter = TransactionType | 'all';
-
-const pageSize = 8;
 
 @Component({
   selector: 'app-transactions',
@@ -56,48 +55,29 @@ export class Transactions {
   readonly categoryFilter = signal('all');
   readonly startDate = signal('');
   readonly endDate = signal('');
-  readonly visibleLimit = signal(pageSize);
 
   readonly filterCategories = computed(() => {
     const type = this.typeFilter();
     return this.ledger.categories().filter((category) => type === 'all' || category.type === type);
   });
 
-  readonly filteredTransactions = computed(() => {
-    const query = this.searchQuery().trim().toLowerCase();
+  readonly filters = computed<TransactionListFilters>(() => {
     const type = this.typeFilter();
-    const categoryId = this.categoryFilter();
-    const startDate = this.startDate();
-    const endDate = this.endDate();
-
-    return this.ledger
-      .transactions()
-      .filter((transaction) => {
-        const category = this.ledger.categoryById(transaction.categoryId);
-        const loan = this.ledger.loanById(transaction.loanId);
-        const searchableText =
-          `${transaction.title} ${category.name} ${loan?.name ?? ''}`.toLowerCase();
-
-        return (
-          (type === 'all' || transaction.type === type) &&
-          (categoryId === 'all' || transaction.categoryId === categoryId) &&
-          (!startDate || transaction.date >= startDate) &&
-          (!endDate || transaction.date <= endDate) &&
-          (!query || searchableText.includes(query))
-        );
-      })
-      .sort((first, second) => second.date.localeCompare(first.date));
+    return {
+      type: type === 'all' ? undefined : type,
+      categoryId: this.categoryFilter() === 'all' ? undefined : this.categoryFilter(),
+      startDate: this.startDate() || undefined,
+      endDate: this.endDate() || undefined,
+      search: this.searchQuery().trim() || undefined,
+    };
   });
 
-  readonly visibleTransactions = computed(() =>
-    this.filteredTransactions().slice(0, this.visibleLimit()),
-  );
-  readonly visibleGroups = computed(() =>
-    this.ledger.transactionGroups(this.visibleTransactions()),
-  );
+  readonly visibleTransactions = computed(() => this.ledger.transactions());
+  readonly visibleGroups = computed(() => this.ledger.allTransactionGroups());
   readonly startDateValue = computed(() => parseInputDate(this.startDate()));
   readonly endDateValue = computed(() => parseInputDate(this.endDate()));
-  readonly hasMore = computed(() => this.visibleLimit() < this.filteredTransactions().length);
+  readonly hasMore = computed(() => this.ledger.transactionList().hasMore);
+  readonly isPageLoading = computed(() => this.ledger.transactionList().isLoading);
   readonly activeFilterCount = computed(() => {
     let count = 0;
 
@@ -125,6 +105,11 @@ export class Transactions {
   });
 
   constructor() {
+    effect(() => {
+      const filters = this.filters();
+      untracked(() => this.ledger.loadTransactionsPage(filters, true));
+    });
+
     effect((onCleanup) => {
       const anchor = this.loadMoreAnchor();
 
@@ -209,13 +194,13 @@ export class Transactions {
   }
 
   loadMore(): void {
-    if (this.hasMore()) {
-      this.visibleLimit.update((limit) => limit + pageSize);
+    if (this.hasMore() && !this.isPageLoading()) {
+      this.ledger.loadTransactionsPage(this.filters(), false);
     }
   }
 
   private resetPage(): void {
-    this.visibleLimit.set(pageSize);
+    return;
   }
 }
 

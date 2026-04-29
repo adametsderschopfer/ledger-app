@@ -23,15 +23,15 @@ type fakeLedgerStore struct {
 	remaining    float64
 }
 
-func (s *fakeLedgerStore) ListCategories(context.Context, string) ([]domain.Category, error) {
-	return domain.DefaultCategories("user-1"), nil
+func (s *fakeLedgerStore) ListCategories(context.Context, string, domain.ListOptions) (domain.PagedResponse[domain.Category], error) {
+	return domain.PagedResponse[domain.Category]{Items: domain.DefaultCategories("user-1")}, nil
 }
 func (s *fakeLedgerStore) CreateCategory(_ context.Context, userID string, category domain.CreateCategory) (domain.Category, error) {
 	return domain.Category{ID: "cat-1", UserID: userID, Name: category.Name, Type: category.Type, Color: category.Color}, nil
 }
 func (s *fakeLedgerStore) DeleteCategory(context.Context, string, string) error { return nil }
-func (s *fakeLedgerStore) ListTransactions(context.Context, string) ([]domain.LedgerTransaction, error) {
-	return s.transactions, nil
+func (s *fakeLedgerStore) ListTransactions(context.Context, string, domain.TransactionFilters) (domain.PagedResponse[domain.LedgerTransaction], error) {
+	return domain.PagedResponse[domain.LedgerTransaction]{Items: s.transactions}, nil
 }
 func (s *fakeLedgerStore) CreateTransaction(_ context.Context, userID string, transaction domain.CreateTransaction) (domain.LedgerTransaction, error) {
 	created := domain.LedgerTransaction{ID: "tx-1", UserID: userID, Type: transaction.Type, Date: transaction.Date, CategoryID: transaction.CategoryID, Title: transaction.Title, Amount: transaction.Amount, LoanID: transaction.LoanID}
@@ -52,8 +52,8 @@ func (s *fakeLedgerStore) CreateTransactions(ctx context.Context, userID string,
 	}
 	return created, nil
 }
-func (s *fakeLedgerStore) ListObligations(context.Context, string) ([]domain.Obligation, error) {
-	return s.obligations, nil
+func (s *fakeLedgerStore) ListObligations(context.Context, string, domain.ListOptions) (domain.PagedResponse[domain.Obligation], error) {
+	return domain.PagedResponse[domain.Obligation]{Items: s.obligations}, nil
 }
 func (s *fakeLedgerStore) CreateObligation(_ context.Context, userID string, obligation domain.CreateObligation) (domain.Obligation, error) {
 	created := domain.Obligation{ID: "obligation-1", UserID: userID, Name: obligation.Name, Amount: obligation.Amount, DueDay: obligation.DueDay, CategoryID: obligation.CategoryID}
@@ -64,8 +64,8 @@ func (s *fakeLedgerStore) UpdateObligation(_ context.Context, userID string, obl
 	return domain.Obligation{ID: obligation.ID, UserID: userID, Name: obligation.Name, Amount: obligation.Amount, DueDay: obligation.DueDay, CategoryID: obligation.CategoryID}, nil
 }
 func (s *fakeLedgerStore) DeleteObligation(context.Context, string, string) error { return nil }
-func (s *fakeLedgerStore) ListLoans(context.Context, string) ([]domain.Loan, error) {
-	return []domain.Loan{{ID: "loan-1", RemainingAmount: s.remaining}}, nil
+func (s *fakeLedgerStore) ListLoans(context.Context, string, domain.ListOptions) (domain.PagedResponse[domain.Loan], error) {
+	return domain.PagedResponse[domain.Loan]{Items: []domain.Loan{{ID: "loan-1", RemainingAmount: s.remaining}}}, nil
 }
 func (s *fakeLedgerStore) CreateLoan(context.Context, string, domain.CreateLoan) (domain.Loan, error) {
 	return domain.Loan{}, nil
@@ -74,6 +74,12 @@ func (s *fakeLedgerStore) UpdateLoan(context.Context, string, domain.UpdateLoan)
 	return domain.Loan{}, nil
 }
 func (s *fakeLedgerStore) DeleteLoan(context.Context, string, string) error { return nil }
+func (s *fakeLedgerStore) DashboardSummary(context.Context, string, string) (domain.DashboardSummary, error) {
+	return domain.DashboardSummary{}, nil
+}
+func (s *fakeLedgerStore) StatisticsSummary(context.Context, string, int) (domain.StatisticsSummary, error) {
+	return domain.StatisticsSummary{}, nil
+}
 
 func TestTransactionBatchCreatesItemsAndAppliesLoanPayment(t *testing.T) {
 	store := &fakeLedgerStore{remaining: 10_000}
