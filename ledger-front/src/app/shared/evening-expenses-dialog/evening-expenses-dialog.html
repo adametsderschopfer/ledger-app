@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Расходы за сегодня</h2>
+<h2 mat-dialog-title>Поступления за сегодня</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="expense-list">
@@ -41,7 +41,7 @@
           <button
             mat-icon-button
             type="button"
-            aria-label="Удалить строку расхода"
+            aria-label="Удалить строку поступления"
             [disabled]="rows.length === 1"
             (click)="removeRow(index)"
           >
@@ -60,5 +60,5 @@
 
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close type="button">Позже</button>
-  <button mat-flat-button type="button" (click)="save()">Добавить расходы</button>
+  <button mat-flat-button type="button" (click)="save()">Добавить поступления</button>
 </mat-dialog-actions>

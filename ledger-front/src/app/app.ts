@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, afterNextRender, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, afterNextRender, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,15 +7,32 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import {
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
 import { filter, map } from 'rxjs';
 import { AuthFacade } from './core/auth/auth.facade';
+import { AppLanguageService } from './core/i18n/app-language.service';
 import { LedgerFacade } from './core/ledger.facade';
 import { EveningExpensesDialog } from './shared/evening-expenses-dialog/evening-expenses-dialog';
 import { AppThemeService } from './core/theme/app-theme.service';
 
 interface NavigationItem {
-  label: string;
+  labelKey:
+    | 'nav.dashboard'
+    | 'nav.transactions'
+    | 'nav.incomes'
+    | 'nav.expenses'
+    | 'nav.loans'
+    | 'nav.settings'
+    | 'nav.server';
   icon: string;
   route: string;
   adminOnly?: boolean;
@@ -42,9 +59,11 @@ export class App {
   private readonly dialog = inject(MatDialog);
   private readonly breakpointObserver = inject(BreakpointObserver);
   readonly auth = inject(AuthFacade);
+  readonly i18n = inject(AppLanguageService);
   readonly ledger = inject(LedgerFacade);
   readonly theme = inject(AppThemeService);
   readonly mobileNavOpen = signal(false);
+  readonly routeLoading = signal(false);
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -62,19 +81,40 @@ export class App {
   readonly showShell = computed(() => !this.isLoginPage() && this.auth.isAuthenticated());
   readonly navItems = computed<readonly NavigationItem[]>(() => {
     const items: readonly NavigationItem[] = [
-      { label: 'Главная', icon: 'dashboard', route: '/dashboard' },
-      { label: 'Операции', icon: 'receipt_long', route: '/transactions' },
-      { label: 'Доходы', icon: 'south_west', route: '/incomes' },
-      { label: 'Расходы', icon: 'north_east', route: '/expenses' },
-      { label: 'Кредиты', icon: 'account_balance', route: '/loans' },
-      { label: 'Настройки', icon: 'settings', route: '/settings' },
-      { label: 'Сервер', icon: 'admin_panel_settings', route: '/server', adminOnly: true },
+      { labelKey: 'nav.dashboard', icon: 'dashboard', route: '/dashboard' },
+      { labelKey: 'nav.transactions', icon: 'receipt_long', route: '/transactions' },
+      { labelKey: 'nav.incomes', icon: 'south_west', route: '/incomes' },
+      { labelKey: 'nav.expenses', icon: 'north_east', route: '/expenses' },
+      { labelKey: 'nav.loans', icon: 'account_balance', route: '/loans' },
+      { labelKey: 'nav.settings', icon: 'settings', route: '/settings' },
+      { labelKey: 'nav.server', icon: 'admin_panel_settings', route: '/server', adminOnly: true },
     ];
 
     return items.filter((item) => !item.adminOnly || this.auth.isAdmin());
   });
 
   constructor() {
+    effect(() => {
+      if (!this.auth.isAuthenticated()) {
+        return;
+      }
+
+      this.ledger.load();
+      if (this.auth.isAdmin()) {
+        this.auth.loadUsers();
+      }
+    });
+
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        this.routeLoading.set(true);
+      }
+
+      if (event instanceof NavigationEnd || event instanceof NavigationCancel || event instanceof NavigationError) {
+        this.routeLoading.set(false);
+      }
+    });
+
     afterNextRender(() => {
       window.setTimeout(() => this.openEveningDialogIfNeeded(), 400);
     });

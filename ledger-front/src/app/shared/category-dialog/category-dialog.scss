@@ -15,10 +15,18 @@ mat-dialog-content {
   grid-column: span 2;
 }
 
-.credit-checkbox {
-  min-height: 56px;
-  display: flex;
-  align-items: center;
+.loan-category-option {
+  display: grid;
+  grid-column: span 2;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.loan-category-option p {
+  margin: 0 0 0 40px;
+  color: var(--ledger-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 @media (max-width: 640px) {
@@ -27,6 +35,10 @@ mat-dialog-content {
   }
 
   .wide-field {
+    grid-column: auto;
+  }
+
+  .loan-category-option {
     grid-column: auto;
   }
 }

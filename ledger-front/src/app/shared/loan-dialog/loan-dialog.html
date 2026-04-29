@@ -1,27 +1,33 @@
-<h2 mat-dialog-title>Добавить кредит</h2>
+<h2 mat-dialog-title>{{ isEdit ? i18n.t('loan.editTitle') : i18n.t('loan.addTitle') }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="dialog-grid">
     <mat-form-field appearance="outline" class="wide-field">
-      <mat-label>Название</mat-label>
+      <mat-label>{{ i18n.t('category.name') }}</mat-label>
       <input matInput formControlName="name" />
     </mat-form-field>
     <mat-form-field appearance="outline">
-      <mat-label>Сумма кредита</mat-label>
+      <mat-label>{{ i18n.t('loan.originalAmount') }}</mat-label>
       <input matInput type="number" min="1" formControlName="originalAmount" inputmode="decimal" />
     </mat-form-field>
+    @if (isEdit) {
+      <mat-form-field appearance="outline">
+        <mat-label>{{ i18n.t('loan.remaining') }}</mat-label>
+        <input matInput type="number" min="0" formControlName="remainingAmount" inputmode="decimal" />
+      </mat-form-field>
+    }
     <mat-form-field appearance="outline">
-      <mat-label>Ежемесячный платеж</mat-label>
+      <mat-label>{{ i18n.t('loan.monthlyPayment') }}</mat-label>
       <input matInput type="number" min="1" formControlName="monthlyPayment" inputmode="decimal" />
     </mat-form-field>
     <mat-form-field appearance="outline">
-      <mat-label>День платежа</mat-label>
+      <mat-label>{{ i18n.t('loan.dueDay') }}</mat-label>
       <input matInput type="number" min="1" max="31" formControlName="dueDay" inputmode="numeric" />
     </mat-form-field>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close type="button">Отмена</button>
-  <button mat-flat-button type="button" (click)="save()">Добавить</button>
+  <button mat-button mat-dialog-close type="button">{{ i18n.t('actions.cancel') }}</button>
+  <button mat-flat-button type="button" (click)="save()">{{ i18n.t('actions.save') }}</button>
 </mat-dialog-actions>

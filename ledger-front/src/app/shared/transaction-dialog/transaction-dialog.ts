@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker';
 import {
   MAT_DIALOG_DATA,
   MatDialogActions,
@@ -16,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { startWith } from 'rxjs';
+import { AppLanguageService } from '../../core/i18n/app-language.service';
 import { Category, CreateTransaction, Loan, TransactionType } from '../../core/models/ledger.models';
 import { toInputDate } from '../../core/ledger.facade';
 
@@ -40,6 +42,7 @@ type TransactionForm = FormGroup<{
     ReactiveFormsModule,
     MatButtonModule,
     MatButtonToggleModule,
+    MatDatepickerModule,
     MatDialogActions,
     MatDialogClose,
     MatDialogContent,
@@ -56,6 +59,7 @@ type TransactionForm = FormGroup<{
 export class TransactionDialog {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly dialogRef = inject(MatDialogRef<TransactionDialog, CreateTransaction>);
+  readonly i18n = inject(AppLanguageService);
   readonly data = inject<TransactionDialogData>(MAT_DIALOG_DATA);
 
   readonly form: TransactionForm = this.fb.group({
@@ -85,6 +89,7 @@ export class TransactionDialog {
     this.data.categories.filter((category) => category.type === this.selectedType()),
   );
   readonly linksToLoan = computed(() => this.categoryLinksToLoan(this.selectedCategoryId()));
+  readonly dateValue = computed(() => parseInputDate(this.form.controls.date.value));
 
   typeChanged(type: TransactionType): void {
     this.form.controls.categoryId.setValue(this.firstCategoryId(type));
@@ -105,6 +110,10 @@ export class TransactionDialog {
     loanControl.updateValueAndValidity({ emitEvent: false });
   }
 
+  setDate(event: MatDatepickerInputEvent<Date>): void {
+    this.form.controls.date.setValue(event.value ? toInputDate(event.value) : '');
+  }
+
   save(): void {
     this.syncLoanControl();
 
@@ -120,7 +129,7 @@ export class TransactionDialog {
       type: value.type,
       date: value.date,
       categoryId: value.categoryId,
-      title: value.title || category?.name || 'Операция',
+      title: value.title || category?.name || this.i18n.t('transactions.transaction'),
       amount: value.amount,
       loanId: this.categoryLinksToLoan(value.categoryId) ? value.loanId : undefined,
     });
@@ -133,4 +142,13 @@ export class TransactionDialog {
   private categoryLinksToLoan(categoryId: string): boolean {
     return this.data.categories.find((category) => category.id === categoryId)?.linksToLoan === true;
   }
+}
+
+function parseInputDate(value: string): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }

@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ledger
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: ledger
+    ports:
+      - "5433:5432"
+    volumes:
+      - ledger-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledger -d ledger"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  auth-service:
+    build:
+      context: ./ledger-go
+      args:
+        SERVICE: auth-service
+    environment:
+      PORT: "8081"
+      DATABASE_URL: postgres://ledger:ledger@postgres:5432/ledger?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  ledger-service:
+    build:
+      context: ./ledger-go
+      args:
+        SERVICE: ledger-service
+    environment:
+      PORT: "8082"
+      DATABASE_URL: postgres://ledger:ledger@postgres:5432/ledger?sslmode=disable
+      AUTH_SERVICE_URL: http://auth-service:8081
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api-gateway:
+    build:
+      context: ./ledger-go
+      args:
+        SERVICE: api-gateway
+    environment:
+      PORT: "8080"
+      AUTH_SERVICE_URL: http://auth-service:8081
+      LEDGER_SERVICE_URL: http://ledger-service:8082
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      ledger-service:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  ledger-postgres:
+

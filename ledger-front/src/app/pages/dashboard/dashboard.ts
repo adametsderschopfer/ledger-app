@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
+import { AppLanguageService } from '../../core/i18n/app-language.service';
 import { LedgerFacade } from '../../core/ledger.facade';
 import { EveningExpensesDialog } from '../../shared/evening-expenses-dialog/evening-expenses-dialog';
 
@@ -15,6 +16,7 @@ import { EveningExpensesDialog } from '../../shared/evening-expenses-dialog/even
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard {
+  readonly i18n = inject(AppLanguageService);
   readonly ledger = inject(LedgerFacade);
   private readonly dialog = inject(MatDialog);
   readonly columns = ['date', 'title', 'category', 'amount'];

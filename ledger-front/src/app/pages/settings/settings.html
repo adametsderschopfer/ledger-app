@@ -1,27 +1,29 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">Настройки</p>
-    <h1>Категории и параметры учета</h1>
+    <p class="eyebrow">{{ i18n.t('settings.subtitle') }}</p>
+    <h1>{{ i18n.t('settings.categories') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openCategoryDialog()">
     <mat-icon>add</mat-icon>
-    Добавить категорию
+    {{ i18n.t('actions.addCategory') }}
   </button>
 </section>
 
 <section class="surface preferences">
   <div>
-    <h2>Внешний вид</h2>
-    <p>Цветовая схема применяется ко всему интерфейсу и сохраняется в браузере.</p>
+    <h2>{{ i18n.t('settings.preferences') }}</h2>
+    <p>{{ i18n.t('settings.themeHelp') }}</p>
   </div>
-  <mat-slide-toggle [checked]="theme.isDark()" (change)="setDarkTheme($event)">
-    Темная тема
-  </mat-slide-toggle>
+  <div class="settings-controls">
+    <mat-slide-toggle [checked]="theme.isDark()" (change)="setDarkTheme($event)">
+      {{ i18n.t('settings.theme') }}
+    </mat-slide-toggle>
+  </div>
 </section>
 
-<section class="category-grid" aria-label="Список категорий">
+<section class="category-grid" [attr.aria-label]="i18n.t('settings.categories')">
   <div class="surface">
-    <h2>Расходы</h2>
+    <h2>{{ i18n.t('settings.expenseCategories') }}</h2>
     <div class="category-list">
       @for (category of ledger.expenseCategories(); track category.id) {
         <article class="category-item">
@@ -33,7 +35,7 @@
             }
           </div>
           @if (!category.isSystem) {
-            <button mat-icon-button type="button" [attr.aria-label]="'Удалить ' + category.name" (click)="ledger.removeCategory(category.id)">
+            <button mat-icon-button type="button" [attr.aria-label]="i18n.t('actions.delete') + ' ' + category.name" (click)="ledger.removeCategory(category.id)">
               <mat-icon>delete</mat-icon>
             </button>
           }
@@ -43,7 +45,7 @@
   </div>
 
   <div class="surface">
-    <h2>Доходы</h2>
+    <h2>{{ i18n.t('settings.incomeCategories') }}</h2>
     <div class="category-list">
       @for (category of ledger.incomeCategories(); track category.id) {
         <article class="category-item">
@@ -52,7 +54,7 @@
             <strong>{{ category.name }}</strong>
           </div>
           @if (!category.isSystem) {
-            <button mat-icon-button type="button" [attr.aria-label]="'Удалить ' + category.name" (click)="ledger.removeCategory(category.id)">
+            <button mat-icon-button type="button" [attr.aria-label]="i18n.t('actions.delete') + ' ' + category.name" (click)="ledger.removeCategory(category.id)">
               <mat-icon>delete</mat-icon>
             </button>
           }
@@ -63,6 +65,6 @@
 </section>
 
 <section class="surface settings-note">
-  <h2>Поведение приложения</h2>
-  <p>После 18:00 приложение показывает диалог для быстрого внесения расходов за день. Записи добавляются пачкой и могут уменьшать остаток по выбранному кредиту.</p>
+  <h2>{{ i18n.t('settings.behavior') }}</h2>
+  <p>{{ i18n.t('settings.behaviorText') }}</p>
 </section>

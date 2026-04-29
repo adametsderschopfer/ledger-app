@@ -1,41 +1,41 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">Текущий месяц</p>
-    <h1>Финансовая сводка</h1>
+    <p class="eyebrow">{{ i18n.t('dashboard.currentMonth') }}</p>
+    <h1>{{ i18n.t('dashboard.summary') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openDailyExpenses()">
     <mat-icon>receipt_long</mat-icon>
-    Расходы за сегодня
+    {{ i18n.t('dashboard.todayExpenses') }}
   </button>
 </section>
 
-<section class="metrics" aria-label="Основные показатели">
+<section class="metrics" [attr.aria-label]="i18n.t('dashboard.summary')">
   <article class="metric">
-    <span>Доходы</span>
+    <span>{{ i18n.t('dashboard.monthIncome') }}</span>
     <strong>{{ ledger.money(ledger.monthlyIncome()) }}</strong>
-    <small>Поступления за месяц</small>
+    <small>{{ i18n.t('dashboard.incomeHelp') }}</small>
   </article>
   <article class="metric">
-    <span>Расходы</span>
+    <span>{{ i18n.t('dashboard.monthExpense') }}</span>
     <strong>{{ ledger.money(ledger.monthlyExpense()) }}</strong>
-    <small>С учетом кредитных платежей</small>
+    <small>{{ i18n.t('dashboard.loanDebtHelp') }}</small>
   </article>
   <article class="metric">
-    <span>Баланс</span>
+    <span>{{ i18n.t('dashboard.balance') }}</span>
     <strong>{{ ledger.money(ledger.monthlyBalance()) }}</strong>
-    <small>Доходы минус расходы</small>
+    <small>{{ i18n.t('dashboard.balanceHelp') }}</small>
   </article>
   <article class="metric">
-    <span>Остаток кредитов</span>
-    <strong>{{ ledger.money(ledger.totalLoanDebt()) }}</strong>
-    <small>Обновляется из расходов</small>
+    <span>{{ i18n.t('dashboard.loanDebt') }}</span>
+    <strong>-{{ ledger.money(ledger.totalLoanDebt()) }}</strong>
+    <small>{{ i18n.t('dashboard.loanDebtHelp') }}</small>
   </article>
 </section>
 
 <section class="dashboard-grid">
   <div class="surface">
     <div class="section-title">
-      <h2>Расходы по категориям</h2>
+      <h2>{{ i18n.t('dashboard.categoryExpenses') }}</h2>
       <span>{{ ledger.expenseBreakdown().length }} категорий</span>
     </div>
 
@@ -50,14 +50,14 @@
           <mat-progress-bar mode="determinate" [value]="item.share"></mat-progress-bar>
         </div>
       } @empty {
-        <p class="empty-state">За этот месяц расходов пока нет.</p>
+        <p class="empty-state">{{ i18n.t('dashboard.emptyExpenses') }}</p>
       }
     </div>
   </div>
 
   <div class="surface">
     <div class="section-title">
-      <h2>Кредиты</h2>
+      <h2>{{ i18n.t('dashboard.loans') }}</h2>
       <span>{{ ledger.loans().length }} активных</span>
     </div>
 
@@ -66,9 +66,9 @@
         <div class="loan-row">
           <div>
             <strong>{{ loan.name }}</strong>
-            <span>Платеж {{ loan.dueDay }} числа</span>
+            <span>{{ i18n.t('loan.monthlyPayment') }} {{ loan.dueDay }}</span>
           </div>
-          <strong>{{ ledger.money(loan.remainingAmount) }}</strong>
+          <strong>-{{ ledger.money(loan.remainingAmount) }}</strong>
         </div>
       }
     </div>
@@ -77,8 +77,8 @@
 
 <section class="surface obligations">
   <div class="section-title">
-    <h2>Обязательные платежи</h2>
-    <span>Кредиты и регулярные списания</span>
+    <h2>{{ i18n.t('dashboard.obligations') }}</h2>
+    <span>{{ i18n.t('dashboard.obligationsHelp') }}</span>
   </div>
 
   <div class="obligation-grid">
@@ -86,7 +86,7 @@
       <article class="obligation-item">
         <div>
           <strong>{{ loan.name }}</strong>
-          <span>До {{ loan.dueDay }} числа</span>
+          <span>До {{ loan.dueDay }}</span>
         </div>
         <strong>{{ ledger.money(loan.monthlyPayment) }}</strong>
       </article>
@@ -96,24 +96,24 @@
 
 <section class="surface">
   <div class="section-title">
-    <h2>Последние операции</h2>
+    <h2>{{ i18n.t('dashboard.recent') }}</h2>
     <span>{{ ledger.recentTransactions().length }} записей</span>
   </div>
 
   <div class="table-shell">
     <table mat-table [dataSource]="ledger.recentTransactions()" class="ledger-table">
     <ng-container matColumnDef="date">
-      <th mat-header-cell *matHeaderCellDef>Дата</th>
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('transactions.date') }}</th>
       <td mat-cell *matCellDef="let transaction">{{ transaction.date }}</td>
     </ng-container>
 
     <ng-container matColumnDef="title">
-      <th mat-header-cell *matHeaderCellDef>Операция</th>
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('transactions.transaction') }}</th>
       <td mat-cell *matCellDef="let transaction">{{ transaction.title }}</td>
     </ng-container>
 
     <ng-container matColumnDef="category">
-      <th mat-header-cell *matHeaderCellDef>Категория</th>
+      <th mat-header-cell *matHeaderCellDef>{{ i18n.t('transactions.category') }}</th>
       <td mat-cell *matCellDef="let transaction">
         <span class="category-name">
           <span class="category-dot" [style.background]="ledger.categoryById(transaction.categoryId).color"></span>
@@ -123,7 +123,7 @@
     </ng-container>
 
     <ng-container matColumnDef="amount">
-      <th mat-header-cell *matHeaderCellDef class="numeric">Сумма</th>
+      <th mat-header-cell *matHeaderCellDef class="numeric">{{ i18n.t('transactions.sum') }}</th>
       <td mat-cell *matCellDef="let transaction" class="numeric">
         {{ transaction.type === 'income' ? '+' : '-' }}{{ ledger.money(transaction.amount) }}
       </td>

@@ -1,10 +1,18 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogActions, MatDialogClose, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogActions,
+  MatDialogClose,
+  MatDialogContent,
+  MatDialogRef,
+  MatDialogTitle,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { CreateLoan } from '../../core/models/ledger.models';
+import { AppLanguageService } from '../../core/i18n/app-language.service';
+import { CreateLoan, Loan, UpdateLoan } from '../../core/models/ledger.models';
 
 @Component({
   selector: 'app-loan-dialog',
@@ -24,13 +32,17 @@ import { CreateLoan } from '../../core/models/ledger.models';
 })
 export class LoanDialog {
   private readonly fb = inject(NonNullableFormBuilder);
-  private readonly dialogRef = inject(MatDialogRef<LoanDialog, CreateLoan>);
+  private readonly dialogRef = inject(MatDialogRef<LoanDialog, CreateLoan | UpdateLoan>);
+  private readonly data = inject<Loan | null>(MAT_DIALOG_DATA, { optional: true });
+  readonly i18n = inject(AppLanguageService);
+  readonly isEdit = this.data !== null;
 
   readonly form = this.fb.group({
-    name: ['', Validators.required],
-    originalAmount: [0, [Validators.required, Validators.min(1)]],
-    monthlyPayment: [0, [Validators.required, Validators.min(1)]],
-    dueDay: [1, [Validators.required, Validators.min(1), Validators.max(31)]],
+    name: [this.data?.name ?? '', Validators.required],
+    originalAmount: [this.data?.originalAmount ?? 0, [Validators.required, Validators.min(1)]],
+    remainingAmount: [this.data?.remainingAmount ?? 0, [Validators.required, Validators.min(0)]],
+    monthlyPayment: [this.data?.monthlyPayment ?? 0, [Validators.required, Validators.min(1)]],
+    dueDay: [this.data?.dueDay ?? 1, [Validators.required, Validators.min(1), Validators.max(31)]],
   });
 
   save(): void {
@@ -39,6 +51,7 @@ export class LoanDialog {
       return;
     }
 
-    this.dialogRef.close(this.form.getRawValue());
+    const loan = this.form.getRawValue();
+    this.dialogRef.close(this.data ? { ...loan, id: this.data.id } : { ...loan, remainingAmount: undefined });
   }
 }

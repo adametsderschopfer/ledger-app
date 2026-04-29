@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { AppLanguageService } from '../../core/i18n/app-language.service';
 import { LedgerFacade } from '../../core/ledger.facade';
 import { AppThemeService } from '../../core/theme/app-theme.service';
 import { CategoryDialog } from '../../shared/category-dialog/category-dialog';
@@ -16,6 +17,7 @@ import { CategoryDialog } from '../../shared/category-dialog/category-dialog';
 })
 export class Settings {
   readonly ledger = inject(LedgerFacade);
+  readonly i18n = inject(AppLanguageService);
   readonly theme = inject(AppThemeService);
   private readonly dialog = inject(MatDialog);
 

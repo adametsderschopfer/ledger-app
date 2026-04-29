@@ -16,8 +16,8 @@ describe('LedgerFacade', () => {
 
   it('should calculate monthly totals and balance', () => {
     expect(facade.monthlyIncome()).toBe(350500);
-    expect(facade.monthlyExpense()).toBe(124300);
-    expect(facade.monthlyBalance()).toBe(226200);
+    expect(facade.monthlyExpense()).toBe(128600);
+    expect(facade.monthlyBalance()).toBe(221900);
   });
 
   it('should group all transactions by day from newest to oldest', () => {

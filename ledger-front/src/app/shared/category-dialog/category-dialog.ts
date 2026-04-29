@@ -6,6 +6,7 @@ import { MatDialogActions, MatDialogClose, MatDialogContent, MatDialogRef, MatDi
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { AppLanguageService } from '../../core/i18n/app-language.service';
 import { CreateCategory, TransactionType } from '../../core/models/ledger.models';
 
 @Component({
@@ -29,6 +30,7 @@ import { CreateCategory, TransactionType } from '../../core/models/ledger.models
 export class CategoryDialog {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly dialogRef = inject(MatDialogRef<CategoryDialog, CreateCategory>);
+  readonly i18n = inject(AppLanguageService);
 
   readonly form = this.fb.group({
     name: ['', Validators.required],

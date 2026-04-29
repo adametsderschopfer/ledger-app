@@ -1,6 +1,6 @@
 .dialog-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   min-width: 0;
   padding: 6px 2px 2px;
@@ -12,7 +12,7 @@ mat-dialog-content {
 }
 
 .wide-field {
-  grid-column: span 3;
+  grid-column: span 2;
 }
 
 @media (max-width: 720px) {

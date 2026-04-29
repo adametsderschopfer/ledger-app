@@ -1,13 +1,13 @@
 .groups {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .day-group {
   overflow: hidden;
-  background: var(--mat-sys-surface-container-low);
+  background: var(--mat-sys-surface);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: var(--ledger-surface-shadow);
 }
 
@@ -20,13 +20,18 @@
 }
 
 .day-header {
-  padding: 10px 14px;
-  background: color-mix(in srgb, var(--mat-sys-primary) 5%, var(--mat-sys-surface));
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 6%, var(--mat-sys-surface));
 }
 
-.day-header div:first-child {
+.day-title {
   display: grid;
-  gap: 3px;
+  gap: 4px;
+}
+
+.day-title strong {
+  font-size: 0.98rem;
+  font-weight: 600;
 }
 
 .day-header span,
@@ -39,7 +44,17 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
+}
+
+.total-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--mat-sys-surface);
+  font-weight: 600;
 }
 
 .transaction-list {
@@ -47,14 +62,25 @@
 }
 
 .transaction-row {
-  padding: 9px 14px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) minmax(132px, auto);
+  padding: 12px 16px;
   border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.transaction-row:hover {
+  background: color-mix(in srgb, var(--mat-sys-primary) 4%, transparent);
+}
+
+.transaction-kind {
+  display: flex;
+  align-items: center;
 }
 
 .transaction-icon {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   place-items: center;
   color: var(--ledger-google-red);
@@ -75,12 +101,22 @@
 
 .transaction-main {
   display: grid;
-  flex: 1;
   min-width: 0;
-  gap: 2px;
+  gap: 3px;
 }
 
-.transaction-row > strong:last-child {
+.transaction-meta {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+
+.transaction-meta span {
+  color: var(--ledger-muted);
+  font-size: 0.78rem;
+}
+
+.transaction-meta strong {
   font-size: 0.95rem;
   white-space: nowrap;
 }
@@ -111,21 +147,33 @@
 
 @media (max-width: 640px) {
   .day-header {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    padding: 12px;
   }
 
   .day-totals {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
   .transaction-row {
-    align-items: flex-start;
-    display: grid;
-    grid-template-columns: 30px 1fr;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px;
   }
 
-  .transaction-row > strong:last-child {
-    grid-column: 2;
+  .transaction-meta {
+    grid-column: auto;
+    align-self: center;
+    justify-items: end;
+  }
+
+  .transaction-meta span {
+    display: none;
+  }
+
+  .transaction-main strong,
+  .transaction-main span {
+    max-width: 100%;
   }
 }

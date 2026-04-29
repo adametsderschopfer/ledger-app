@@ -30,7 +30,7 @@
 }
 
 .ledger-table {
-  min-width: 760px;
+  min-width: 860px;
   width: 100%;
 }
 
@@ -44,6 +44,12 @@
 
 .progress-cell {
   min-width: 180px;
+}
+
+.actions-header,
+.actions-cell {
+  width: 56px;
+  text-align: right;
 }
 
 .progress-cell span {

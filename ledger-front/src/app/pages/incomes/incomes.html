@@ -1,15 +1,15 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">Поступления</p>
-    <h1>Доходы</h1>
+    <p class="eyebrow">{{ i18n.t('transactions.incomesEyebrow') }}</p>
+    <h1>{{ i18n.t('transactions.incomesTitle') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openCreateDialog()">
     <mat-icon>add</mat-icon>
-    Добавить доход
+    {{ i18n.t('actions.addIncome') }}
   </button>
 </section>
 
 <app-transaction-groups
   [groups]="ledger.incomeTransactionGroups()"
-  emptyText="Доходов пока нет."
+  [emptyText]="i18n.t('transactions.incomesEmpty')"
 />

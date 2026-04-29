@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { CreateUser, UserRole } from '../../core/auth/auth.models';
+import { AppLanguageService } from '../../core/i18n/app-language.service';
 
 @Component({
   selector: 'app-user-dialog',
@@ -27,6 +28,7 @@ import { CreateUser, UserRole } from '../../core/auth/auth.models';
 export class UserDialog {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly dialogRef = inject(MatDialogRef<UserDialog, CreateUser>);
+  readonly i18n = inject(AppLanguageService);
 
   readonly form = this.fb.group({
     name: ['', Validators.required],

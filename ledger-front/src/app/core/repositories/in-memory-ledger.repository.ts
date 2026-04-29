@@ -6,6 +6,7 @@ import {
   CreateTransaction,
   LedgerTransaction,
   Loan,
+  UpdateLoan,
 } from '../models/ledger.models';
 import { LedgerRepository } from './ledger.repository';
 
@@ -61,6 +62,10 @@ export class InMemoryLedgerRepository extends LedgerRepository {
   override readonly transactions = this.transactionState.asReadonly();
   override readonly loans = this.loanState.asReadonly();
 
+  override load(): void {
+    return;
+  }
+
   override addTransaction(transaction: CreateTransaction): void {
     const created = { ...transaction, id: createId('tx') };
     this.transactionState.update((transactions) => [created, ...transactions]);
@@ -82,10 +87,33 @@ export class InMemoryLedgerRepository extends LedgerRepository {
       {
         ...loan,
         id: createId('loan'),
-        remainingAmount: loan.originalAmount,
+        remainingAmount: loan.remainingAmount ?? loan.originalAmount,
       },
       ...loans,
     ]);
+  }
+
+  override updateLoan(updatedLoan: UpdateLoan): void {
+    this.loanState.update((loans) =>
+      loans.map((loan) =>
+        loan.id === updatedLoan.id
+          ? {
+              ...loan,
+              ...updatedLoan,
+              remainingAmount: Math.min(updatedLoan.remainingAmount ?? loan.remainingAmount, updatedLoan.originalAmount),
+            }
+          : loan,
+      ),
+    );
+  }
+
+  override removeLoan(loanId: string): void {
+    this.loanState.update((loans) => loans.filter((loan) => loan.id !== loanId));
+    this.transactionState.update((transactions) =>
+      transactions.map((transaction) =>
+        transaction.loanId === loanId ? { ...transaction, loanId: undefined } : transaction,
+      ),
+    );
   }
 
   override addCategory(category: CreateCategory): void {
@@ -262,6 +290,30 @@ function createMockTransactions(): readonly LedgerTransaction[] {
     },
     {
       id: 'tx-16',
+      type: 'expense',
+      date: currentMonthDate(16),
+      categoryId: 'groceries',
+      title: 'Магазин у дома',
+      amount: 1800,
+    },
+    {
+      id: 'tx-17',
+      type: 'expense',
+      date: currentMonthDate(16),
+      categoryId: 'transport',
+      title: 'Парковка',
+      amount: 900,
+    },
+    {
+      id: 'tx-18',
+      type: 'expense',
+      date: currentMonthDate(16),
+      categoryId: 'entertainment',
+      title: 'Кофе с командой',
+      amount: 1600,
+    },
+    {
+      id: 'tx-19',
       type: 'income',
       date: currentMonthDate(17),
       categoryId: 'investments',
@@ -269,7 +321,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 12400,
     },
     {
-      id: 'tx-17',
+      id: 'tx-20',
       type: 'expense',
       date: currentMonthDate(18),
       categoryId: 'transport',
@@ -277,7 +329,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 7100,
     },
     {
-      id: 'tx-18',
+      id: 'tx-21',
       type: 'expense',
       date: currentMonthDate(19),
       categoryId: 'health',
@@ -285,7 +337,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 8500,
     },
     {
-      id: 'tx-19',
+      id: 'tx-22',
       type: 'expense',
       date: currentMonthDate(20),
       categoryId: 'utilities',
@@ -293,7 +345,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 3900,
     },
     {
-      id: 'tx-20',
+      id: 'tx-23',
       type: 'expense',
       date: currentMonthDate(21),
       categoryId: 'home',
@@ -301,7 +353,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 4300,
     },
     {
-      id: 'tx-21',
+      id: 'tx-24',
       type: 'expense',
       date: currentMonthDate(22),
       categoryId: expenseLoanCategoryId,
@@ -310,7 +362,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       loanId: 'phone-installment',
     },
     {
-      id: 'tx-22',
+      id: 'tx-25',
       type: 'income',
       date: currentMonthDate(23),
       categoryId: 'salary',
@@ -318,7 +370,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 135000,
     },
     {
-      id: 'tx-23',
+      id: 'tx-26',
       type: 'expense',
       date: previousMonthDate(24),
       categoryId: 'entertainment',
@@ -326,7 +378,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 9000,
     },
     {
-      id: 'tx-24',
+      id: 'tx-27',
       type: 'expense',
       date: previousMonthDate(26),
       categoryId: 'groceries',
@@ -334,7 +386,7 @@ function createMockTransactions(): readonly LedgerTransaction[] {
       amount: 12800,
     },
     {
-      id: 'tx-25',
+      id: 'tx-28',
       type: 'income',
       date: previousMonthDate(28),
       categoryId: 'freelance',

@@ -4,7 +4,7 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role: UserRole;
   isActive: boolean;
 }
@@ -19,4 +19,9 @@ export interface CreateUser {
   email: string;
   password: string;
   role: UserRole;
+}
+
+export interface AuthSession {
+  user: AppUser;
+  token: string;
 }

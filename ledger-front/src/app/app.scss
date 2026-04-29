@@ -1,14 +1,15 @@
 :host {
   display: block;
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 .shell {
-  min-height: 100dvh;
+  height: 100dvh;
   background: var(--ledger-page-bg);
 }
 
 .sidenav {
+  height: 100dvh;
   width: 260px;
   border-right: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface);
@@ -65,6 +66,11 @@ mat-nav-list {
   margin: 0 auto;
   padding: 32px;
   box-sizing: border-box;
+}
+
+mat-sidenav-content {
+  height: 100dvh;
+  overflow: auto;
 }
 
 .sidebar-footer {
@@ -139,6 +145,67 @@ mat-nav-list {
   backdrop-filter: blur(16px);
 }
 
+.page-skeleton {
+  display: grid;
+  gap: 16px;
+}
+
+.skeleton-line,
+.skeleton-card,
+.skeleton-list div {
+  position: relative;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+}
+
+.skeleton-line::after,
+.skeleton-card::after,
+.skeleton-list div::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--mat-sys-primary) 10%, transparent),
+    transparent
+  );
+  animation: skeleton-shimmer 1.2s infinite;
+  transform: translateX(-100%);
+}
+
+.skeleton-title {
+  width: min(360px, 70%);
+  height: 52px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.skeleton-card {
+  height: 132px;
+}
+
+.skeleton-list {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-list div {
+  height: 76px;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 @media (max-width: 820px) {
   .sidenav {
     width: min(84vw, 300px);
@@ -146,5 +213,9 @@ mat-nav-list {
 
   .content {
     padding: 18px 14px 28px;
+  }
+
+  .skeleton-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -13,7 +13,7 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Пароль</mat-label>
+      <mat-label>{{ i18n.t('auth.password') }}</mat-label>
       <input matInput formControlName="password" type="password" autocomplete="new-password" />
       @if (form.controls.password.hasError('minlength')) {
         <mat-error>Минимум 4 символа</mat-error>
@@ -23,14 +23,14 @@
     <mat-form-field appearance="outline">
       <mat-label>Роль</mat-label>
       <mat-select formControlName="role">
-        <mat-option value="user">Пользователь</mat-option>
-        <mat-option value="admin">Админ</mat-option>
+        <mat-option value="user">{{ i18n.t('auth.user') }}</mat-option>
+        <mat-option value="admin">{{ i18n.t('auth.admin') }}</mat-option>
       </mat-select>
     </mat-form-field>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close type="button">Отмена</button>
+  <button mat-button mat-dialog-close type="button">{{ i18n.t('actions.cancel') }}</button>
   <button mat-flat-button type="button" (click)="save()">Добавить</button>
 </mat-dialog-actions>

@@ -1,34 +1,37 @@
-<h2 mat-dialog-title>Добавить категорию</h2>
+<h2 mat-dialog-title>{{ i18n.t('category.addTitle') }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" class="dialog-grid">
     <mat-form-field appearance="outline" class="wide-field">
-      <mat-label>Название</mat-label>
+      <mat-label>{{ i18n.t('category.name') }}</mat-label>
       <input matInput formControlName="name" />
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Тип</mat-label>
+      <mat-label>{{ i18n.t('category.type') }}</mat-label>
       <mat-select formControlName="type">
-        <mat-option value="expense">Расход</mat-option>
-        <mat-option value="income">Доход</mat-option>
+        <mat-option value="expense">{{ i18n.t('category.expense') }}</mat-option>
+        <mat-option value="income">{{ i18n.t('category.income') }}</mat-option>
       </mat-select>
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Цвет</mat-label>
-      <input matInput formControlName="color" type="color" aria-label="Цвет категории" />
+      <mat-label>{{ i18n.t('category.color') }}</mat-label>
+      <input matInput formControlName="color" type="color" [attr.aria-label]="i18n.t('category.color')" />
     </mat-form-field>
 
     @if (form.controls.type.value === 'expense') {
-      <mat-checkbox formControlName="linksToLoan" class="credit-checkbox">
-        Учет по кредитам
-      </mat-checkbox>
+      <div class="loan-category-option">
+        <mat-checkbox formControlName="linksToLoan">
+          {{ i18n.t('category.loanLabel') }}
+        </mat-checkbox>
+        <p>{{ i18n.t('category.loanDescription') }}</p>
+      </div>
     }
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close type="button">Отмена</button>
-  <button mat-flat-button type="button" (click)="save()">Добавить</button>
+  <button mat-button mat-dialog-close type="button">{{ i18n.t('actions.cancel') }}</button>
+  <button mat-flat-button type="button" (click)="save()">{{ i18n.t('actions.addCategory') }}</button>
 </mat-dialog-actions>

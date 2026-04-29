@@ -2,7 +2,7 @@
   <mat-card appearance="outlined" class="login-card">
     <mat-card-header>
       <mat-card-title>Ledger</mat-card-title>
-      <mat-card-subtitle>Вход в учет финансов</mat-card-subtitle>
+      <mat-card-subtitle>{{ i18n.t('auth.subtitle') }}</mat-card-subtitle>
     </mat-card-header>
 
     <mat-card-content>
@@ -14,21 +14,21 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Пароль</mat-label>
+          <mat-label>{{ i18n.t('auth.password') }}</mat-label>
           <input matInput formControlName="password" type="password" autocomplete="current-password" />
           <mat-icon matPrefix>lock</mat-icon>
         </mat-form-field>
 
         @if (loginFailed()) {
-          <p class="form-error">Пользователь не найден или пароль слишком короткий.</p>
+          <p class="form-error">{{ i18n.t('auth.loginError') }}</p>
         }
 
-        <button mat-flat-button type="submit">Войти</button>
+        <button mat-flat-button type="submit" [disabled]="loginPending()">{{ i18n.t('auth.login') }}</button>
       </form>
     </mat-card-content>
 
     <mat-card-footer>
-      <span>Мок: admin@ledger.local / admin</span>
+      <span>{{ i18n.t('auth.mock') }}</span>
     </mat-card-footer>
   </mat-card>
 </main>

@@ -1,4 +1,5 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { AppLanguageService } from './i18n/app-language.service';
 import {
   Category,
   CreateCategory,
@@ -7,8 +8,11 @@ import {
   DailyExpenseDraft,
   LedgerTransaction,
   Loan,
+  UpdateLoan,
 } from './models/ledger.models';
 import { LedgerRepository } from './repositories/ledger.repository';
+
+const loanPaymentCategoryId = 'credit-payments';
 
 export interface CategoryBreakdown {
   category: Category;
@@ -26,6 +30,7 @@ export interface TransactionDayGroup {
 @Injectable({ providedIn: 'root' })
 export class LedgerFacade {
   private readonly repository = inject(LedgerRepository);
+  private readonly i18n = inject(AppLanguageService);
 
   readonly categories = this.repository.categories;
   readonly transactions = this.repository.transactions;
@@ -83,6 +88,10 @@ export class LedgerFacade {
       .sort((first, second) => second.amount - first.amount);
   });
 
+  load(): void {
+    this.repository.load();
+  }
+
   addTransaction(transaction: CreateTransaction): void {
     this.repository.addTransaction(transaction);
   }
@@ -101,6 +110,31 @@ export class LedgerFacade {
 
   addLoan(loan: CreateLoan): void {
     this.repository.addLoan(loan);
+  }
+
+  updateLoan(loan: UpdateLoan): void {
+    this.repository.updateLoan(loan);
+  }
+
+  removeLoan(loanId: string): void {
+    this.repository.removeLoan(loanId);
+  }
+
+  recordLoanPayment(loanId: string): void {
+    const loan = this.loanById(loanId);
+
+    if (!loan || loan.remainingAmount <= 0) {
+      return;
+    }
+
+    this.repository.addTransaction({
+      type: 'expense',
+      date: toInputDate(new Date()),
+      categoryId: loanPaymentCategoryId,
+      title: `${this.i18n.t('loan.paymentTitle')}: ${loan.name}`,
+      amount: Math.min(loan.monthlyPayment, loan.remainingAmount),
+      loanId: loan.id,
+    });
   }
 
   addCategory(category: CreateCategory): void {
@@ -135,7 +169,7 @@ export class LedgerFacade {
   }
 
   money(value: number): string {
-    return new Intl.NumberFormat('ru-RU', {
+    return new Intl.NumberFormat(this.i18n.locale(), {
       style: 'currency',
       currency: 'RUB',
       maximumFractionDigits: 0,

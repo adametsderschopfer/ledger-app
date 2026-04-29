@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, Signal, inject, signal } from '@angular/core';
 import {
   Category,
@@ -7,6 +7,7 @@ import {
   CreateTransaction,
   LedgerTransaction,
   Loan,
+  UpdateLoan,
 } from '../models/ledger.models';
 import { LedgerRepository } from './ledger.repository';
 
@@ -23,49 +24,144 @@ export class HttpLedgerRepository extends LedgerRepository {
   override readonly transactions: Signal<readonly LedgerTransaction[]> = this.transactionState.asReadonly();
   override readonly loans: Signal<readonly Loan[]> = this.loanState.asReadonly();
 
-  load(): void {
-    this.http.get<readonly Category[]>(`${this.apiUrl}/categories`).subscribe((categories) => {
-      this.categoryState.set(categories);
-    });
-
-    this.http.get<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions`).subscribe((transactions) => {
-      this.transactionState.set(transactions);
-    });
-
-    this.http.get<readonly Loan[]>(`${this.apiUrl}/loans`).subscribe((loans) => {
-      this.loanState.set(loans);
-    });
+  override load(): void {
+    this.loadCategories();
+    this.loadTransactions();
+    this.loadLoans();
   }
 
   override addTransaction(transaction: CreateTransaction): void {
-    this.http.post<LedgerTransaction>(`${this.apiUrl}/transactions`, transaction).subscribe((created) => {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.post<LedgerTransaction>(`${this.apiUrl}/transactions`, transaction, { headers }).subscribe((created) => {
       this.transactionState.update((transactions) => [created, ...transactions]);
+      if (created.loanId) {
+        this.loadLoans();
+      }
     });
   }
 
   override addTransactions(transactions: readonly CreateTransaction[]): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
     this.http
-      .post<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions/batch`, { transactions })
+      .post<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions/batch`, { transactions }, { headers })
       .subscribe((created) => {
         this.transactionState.update((current) => [...created, ...current]);
+        if (created.some((transaction) => transaction.loanId)) {
+          this.loadLoans();
+        }
       });
   }
 
   override addLoan(loan: CreateLoan): void {
-    this.http.post<Loan>(`${this.apiUrl}/loans`, loan).subscribe((created) => {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.post<Loan>(`${this.apiUrl}/loans`, loan, { headers }).subscribe((created) => {
       this.loanState.update((loans) => [created, ...loans]);
     });
   }
 
+  override updateLoan(loan: UpdateLoan): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.put<Loan>(`${this.apiUrl}/loans/${loan.id}`, loan, { headers }).subscribe((updated) => {
+      this.loanState.update((loans) => loans.map((item) => (item.id === updated.id ? updated : item)));
+    });
+  }
+
+  override removeLoan(loanId: string): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.delete<void>(`${this.apiUrl}/loans/${loanId}`, { headers }).subscribe(() => {
+      this.loanState.update((loans) => loans.filter((loan) => loan.id !== loanId));
+      this.transactionState.update((transactions) =>
+        transactions.map((transaction) =>
+          transaction.loanId === loanId ? { ...transaction, loanId: undefined } : transaction,
+        ),
+      );
+    });
+  }
+
   override addCategory(category: CreateCategory): void {
-    this.http.post<Category>(`${this.apiUrl}/categories`, category).subscribe((created) => {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.post<Category>(`${this.apiUrl}/categories`, category, { headers }).subscribe((created) => {
       this.categoryState.update((categories) => [...categories, created]);
     });
   }
 
   override removeCategory(categoryId: string): void {
-    this.http.delete<void>(`${this.apiUrl}/categories/${categoryId}`).subscribe(() => {
+    const headers = this.authHeaders();
+    if (!headers) {
+      return;
+    }
+
+    this.http.delete<void>(`${this.apiUrl}/categories/${categoryId}`, { headers }).subscribe(() => {
       this.categoryState.update((categories) => categories.filter((category) => category.id !== categoryId));
     });
+  }
+
+  private loadCategories(): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      this.categoryState.set([]);
+      return;
+    }
+
+    this.http.get<readonly Category[]>(`${this.apiUrl}/categories`, { headers }).subscribe((categories) => {
+      this.categoryState.set(categories);
+    });
+  }
+
+  private loadTransactions(): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      this.transactionState.set([]);
+      return;
+    }
+
+    this.http.get<readonly LedgerTransaction[]>(`${this.apiUrl}/transactions`, { headers }).subscribe((transactions) => {
+      this.transactionState.set(transactions);
+    });
+  }
+
+  private loadLoans(): void {
+    const headers = this.authHeaders();
+    if (!headers) {
+      this.loanState.set([]);
+      return;
+    }
+
+    this.http.get<readonly Loan[]>(`${this.apiUrl}/loans`, { headers }).subscribe((loans) => {
+      this.loanState.set(loans);
+    });
+  }
+
+  private authHeaders(): HttpHeaders | undefined {
+    if (typeof sessionStorage === 'undefined') {
+      return undefined;
+    }
+
+    const token = sessionStorage.getItem('ledger-auth-token');
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
   }
 }

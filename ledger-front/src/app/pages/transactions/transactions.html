@@ -1,88 +1,107 @@
 <section class="page-heading">
   <div>
-    <p class="eyebrow">Журнал</p>
-    <h1>Все операции</h1>
+    <p class="eyebrow">{{ i18n.t('transactions.journal') }}</p>
+    <h1>{{ i18n.t('transactions.title') }}</h1>
   </div>
   <button mat-flat-button type="button" (click)="openCreateDialog()">
     <mat-icon>add</mat-icon>
-    Добавить операцию
+    {{ i18n.t('actions.addTransaction') }}
   </button>
 </section>
 
-<section class="filters" aria-label="Фильтры операций">
-  <mat-form-field appearance="outline">
-    <mat-label>Поиск</mat-label>
-    <mat-icon matPrefix>search</mat-icon>
-    <input
-      #searchInput
-      matInput
-      type="search"
-      autocomplete="off"
-      [value]="searchQuery()"
-      (input)="setSearchQuery(searchInput.value)"
-    />
-  </mat-form-field>
-
-  <mat-form-field appearance="outline">
-    <mat-label>Тип</mat-label>
-    <mat-select [value]="typeFilter()" (selectionChange)="setTypeFilter($event)">
-      <mat-option value="all">Все типы</mat-option>
-      <mat-option value="income">Доходы</mat-option>
-      <mat-option value="expense">Расходы</mat-option>
-    </mat-select>
-  </mat-form-field>
-
-  <mat-form-field appearance="outline">
-    <mat-label>Категория</mat-label>
-    <mat-select [value]="categoryFilter()" (selectionChange)="setCategoryFilter($event)">
-      <mat-option value="all">Все категории</mat-option>
-      @for (category of filterCategories(); track category.id) {
-        <mat-option [value]="category.id">{{ category.name }}</mat-option>
+<mat-expansion-panel class="filters-panel">
+  <mat-expansion-panel-header>
+    <mat-panel-title>
+      <mat-icon>filter_alt</mat-icon>
+      {{ i18n.t('transactions.filters') }}
+    </mat-panel-title>
+    <mat-panel-description>
+      @if (activeFilterCount() > 0) {
+        {{ activeFilterCount() }} активн.
+      } @else {
+        Все операции
       }
-    </mat-select>
-  </mat-form-field>
+    </mat-panel-description>
+  </mat-expansion-panel-header>
 
-  <mat-form-field appearance="outline">
-    <mat-label>С даты</mat-label>
-    <input
-      #startDateInput
-      matInput
-      type="date"
-      [value]="startDate()"
-      (input)="setStartDate(startDateInput.value)"
-    />
-  </mat-form-field>
+  <section class="filters" [attr.aria-label]="i18n.t('transactions.filters')">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ i18n.t('transactions.search') }}</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        #searchInput
+        matInput
+        type="search"
+        autocomplete="off"
+        [value]="searchQuery()"
+        (input)="setSearchQuery(searchInput.value)"
+      />
+    </mat-form-field>
 
-  <mat-form-field appearance="outline">
-    <mat-label>По дату</mat-label>
-    <input #endDateInput matInput type="date" [value]="endDate()" (input)="setEndDate(endDateInput.value)" />
-  </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>{{ i18n.t('category.type') }}</mat-label>
+      <mat-select [value]="typeFilter()" (selectionChange)="setTypeFilter($event)">
+        <mat-option value="all">{{ i18n.t('transactions.allTypes') }}</mat-option>
+        <mat-option value="income">{{ i18n.t('transactions.income') }}</mat-option>
+        <mat-option value="expense">{{ i18n.t('transactions.expense') }}</mat-option>
+      </mat-select>
+    </mat-form-field>
 
-  <button mat-stroked-button type="button" [disabled]="activeFilterCount() === 0" (click)="clearFilters()">
-    <mat-icon>filter_alt_off</mat-icon>
-    Сбросить
-  </button>
-</section>
+    <mat-form-field appearance="outline">
+      <mat-label>{{ i18n.t('transactions.category') }}</mat-label>
+      <mat-select [value]="categoryFilter()" (selectionChange)="setCategoryFilter($event)">
+        <mat-option value="all">{{ i18n.t('transactions.allCategories') }}</mat-option>
+        @for (category of filterCategories(); track category.id) {
+          <mat-option [value]="category.id">{{ category.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ i18n.t('transactions.startDate') }}</mat-label>
+      <input
+        matInput
+        [matDatepicker]="startPicker"
+        [value]="startDateValue()"
+        (dateChange)="setStartDate($event)"
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="startPicker" />
+      <mat-datepicker #startPicker />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ i18n.t('transactions.endDate') }}</mat-label>
+      <input matInput [matDatepicker]="endPicker" [value]="endDateValue()" (dateChange)="setEndDate($event)" />
+      <mat-datepicker-toggle matIconSuffix [for]="endPicker" />
+      <mat-datepicker #endPicker />
+    </mat-form-field>
+
+    <button mat-stroked-button type="button" [disabled]="activeFilterCount() === 0" (click)="clearFilters()">
+      <mat-icon>filter_alt_off</mat-icon>
+      {{ i18n.t('actions.clear') }}
+    </button>
+  </section>
+</mat-expansion-panel>
 
 <section class="results-summary" aria-live="polite">
-  <span>Показано {{ visibleTransactions().length }} из {{ filteredTransactions().length }}</span>
+  <span>{{ i18n.t('transactions.shown') }} {{ visibleTransactions().length }} / {{ filteredTransactions().length }}</span>
   @if (activeFilterCount() > 0) {
-    <span>{{ activeFilterCount() }} фильтр(ов)</span>
+    <span>{{ activeFilterCount() }}</span>
   }
 </section>
 
 <app-transaction-groups
   [groups]="visibleGroups()"
-  emptyText="Операции по выбранным фильтрам не найдены."
+  [emptyText]="i18n.t('transactions.empty')"
 />
 
 @if (hasMore()) {
   <div #loadMoreAnchor class="load-more">
     <button mat-stroked-button type="button" (click)="loadMore()">
       <mat-icon>expand_more</mat-icon>
-      Показать еще
+      {{ i18n.t('transactions.loadMore') }}
     </button>
   </div>
 } @else if (filteredTransactions().length > 0) {
-  <p class="list-end">Показаны все операции.</p>
+  <p class="list-end">{{ i18n.t('transactions.allDone') }}</p>
 }

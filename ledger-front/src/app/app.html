@@ -6,14 +6,14 @@
       class="sidenav"
       [mode]="isHandset() ? 'over' : 'side'"
       [opened]="!isHandset() || mobileNavOpen()"
-      aria-label="Основная навигация"
+      [attr.aria-label]="i18n.t('app.openNavigation')"
       (closedStart)="mobileNavOpen.set(false)"
     >
       <div class="brand">
         <span class="brand-mark">L</span>
         <div>
           <strong>Ledger</strong>
-          <span>Finance workspace</span>
+          <span>{{ i18n.t('app.financeWorkspace') }}</span>
         </div>
       </div>
 
@@ -27,7 +27,7 @@
             (click)="closeNavIfHandset()"
           >
             <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
+            <span matListItemTitle>{{ i18n.t(item.labelKey) }}</span>
           </a>
         }
       </mat-nav-list>
@@ -36,8 +36,8 @@
         <div class="user-chip">
           <span>{{ auth.currentUser()?.name?.slice(0, 1) ?? 'L' }}</span>
           <div>
-            <strong>{{ auth.currentUser()?.name ?? 'Гость' }}</strong>
-            <small>{{ auth.currentUser()?.role === 'admin' ? 'Администратор' : 'Пользователь' }}</small>
+            <strong>{{ auth.currentUser()?.name ?? i18n.t('app.guest') }}</strong>
+            <small>{{ auth.currentUser()?.role === 'admin' ? i18n.t('auth.admin') : i18n.t('auth.user') }}</small>
           </div>
         </div>
 
@@ -45,8 +45,8 @@
           <button
             mat-icon-button
             type="button"
-            [attr.aria-label]="theme.isDark() ? 'Включить светлую тему' : 'Включить темную тему'"
-            [matTooltip]="theme.isDark() ? 'Светлая тема' : 'Темная тема'"
+            [attr.aria-label]="theme.isDark() ? i18n.t('theme.enableLight') : i18n.t('theme.enableDark')"
+            [matTooltip]="theme.isDark() ? i18n.t('theme.light') : i18n.t('theme.dark')"
             (click)="theme.toggle()"
           >
             <mat-icon>{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
@@ -54,7 +54,7 @@
 
           <button mat-stroked-button type="button" (click)="logout()">
             <mat-icon>logout</mat-icon>
-            Выйти
+            {{ i18n.t('app.logout') }}
           </button>
         </div>
       </div>
@@ -66,7 +66,7 @@
           <button
             mat-icon-button
             type="button"
-            aria-label="Открыть навигацию"
+            [attr.aria-label]="i18n.t('app.openNavigation')"
             (click)="toggleMobileNav()"
           >
             <mat-icon>menu</mat-icon>
@@ -76,7 +76,23 @@
       }
 
       <main class="content">
-        <router-outlet />
+        @if (routeLoading()) {
+          <section class="page-skeleton" aria-label="Загрузка">
+            <div class="skeleton-line skeleton-title"></div>
+            <div class="skeleton-grid">
+              <div class="skeleton-card"></div>
+              <div class="skeleton-card"></div>
+              <div class="skeleton-card"></div>
+            </div>
+            <div class="skeleton-list">
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+          </section>
+        } @else {
+          <router-outlet />
+        }
       </main>
     </mat-sidenav-content>
   </mat-sidenav-container>

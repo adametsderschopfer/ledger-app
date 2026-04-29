@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { Observable, of } from 'rxjs';
 import { AppUser, CreateUser, LoginCredentials } from './auth.models';
 import { AuthRepository } from './auth.repository';
 
@@ -28,7 +29,15 @@ export class InMemoryAuthRepository extends AuthRepository {
   override readonly currentUser = this.currentUserState.asReadonly();
   override readonly users = this.usersState.asReadonly();
 
-  override login(credentials: LoginCredentials): boolean {
+  override loadCurrentUser(): void {
+    return;
+  }
+
+  override loadUsers(): void {
+    return;
+  }
+
+  override login(credentials: LoginCredentials): Observable<boolean> {
     const user = this.usersState().find(
       (item) =>
         item.email.toLowerCase() === credentials.email.toLowerCase() &&
@@ -37,12 +46,12 @@ export class InMemoryAuthRepository extends AuthRepository {
     );
 
     if (!user) {
-      return false;
+      return of(false);
     }
 
     this.currentUserState.set(user);
     sessionStorage.setItem(this.sessionKey, user.id);
-    return true;
+    return of(true);
   }
 
   override logout(): void {

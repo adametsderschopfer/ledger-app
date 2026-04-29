@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TransactionDialog, TransactionDialogData } from './transaction-dialog';
@@ -28,6 +29,7 @@ describe('TransactionDialog', () => {
       imports: [TransactionDialog],
       providers: [
         provideNoopAnimations(),
+        provideNativeDateAdapter(),
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: { close } },
       ],

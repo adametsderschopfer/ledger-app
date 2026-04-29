@@ -40,8 +40,13 @@ export interface CreateTransaction {
 export interface CreateLoan {
   name: string;
   originalAmount: number;
+  remainingAmount?: number;
   monthlyPayment: number;
   dueDay: number;
+}
+
+export interface UpdateLoan extends CreateLoan {
+  id: string;
 }
 
 export interface CreateCategory {

@@ -20,17 +20,25 @@
   text-transform: uppercase;
 }
 
+.filters-panel {
+  margin-bottom: 12px;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  box-shadow: var(--ledger-surface-shadow);
+}
+
+.filters-panel mat-panel-title {
+  align-items: center;
+  gap: 8px;
+}
+
 .filters {
   display: grid;
   grid-template-columns: minmax(220px, 1.4fr) repeat(4, minmax(150px, 1fr)) auto;
   align-items: start;
   gap: 12px;
-  margin-bottom: 10px;
-  padding: 14px;
-  background: var(--mat-sys-surface-container-low);
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  box-shadow: var(--ledger-surface-shadow);
+  padding-top: 8px;
 }
 
 .filters button {

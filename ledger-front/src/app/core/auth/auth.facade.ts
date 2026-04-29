@@ -1,4 +1,5 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { Observable } from 'rxjs';
 import { CreateUser, LoginCredentials } from './auth.models';
 import { AuthRepository } from './auth.repository';
 
@@ -11,7 +12,15 @@ export class AuthFacade {
   readonly isAuthenticated = computed(() => this.currentUser() !== null);
   readonly isAdmin = computed(() => this.currentUser()?.role === 'admin');
 
-  login(credentials: LoginCredentials): boolean {
+  loadCurrentUser(): void {
+    this.repository.loadCurrentUser();
+  }
+
+  loadUsers(): void {
+    this.repository.loadUsers();
+  }
+
+  login(credentials: LoginCredentials): Observable<boolean> {
     return this.repository.login(credentials);
   }
 
