@@ -17,11 +17,16 @@ type PostgresStore struct {
 	db *sql.DB
 }
 
+type DefaultUser struct {
+	ID   string
+	User domain.CreateUser
+}
+
 func NewPostgresStore(db *sql.DB) *PostgresStore {
 	return &PostgresStore{db: db}
 }
 
-func (s *PostgresStore) Migrate(ctx context.Context) error {
+func (s *PostgresStore) Migrate(ctx context.Context, defaultUsers []DefaultUser) error {
 	_, err := s.db.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
@@ -54,10 +59,13 @@ CREATE TABLE IF NOT EXISTS categories (
 		return err
 	}
 
-	if err := s.ensureDefaultUser(ctx, domain.CreateUser{Name: "Администратор", Email: "admin@ledger.local", Password: "admin", Role: domain.RoleAdmin}, "admin-user"); err != nil {
-		return err
+	for _, defaultUser := range defaultUsers {
+		if err := s.ensureDefaultUser(ctx, defaultUser.User, defaultUser.ID); err != nil {
+			return err
+		}
 	}
-	return s.ensureDefaultUser(ctx, domain.CreateUser{Name: "Пользователь", Email: "user@ledger.local", Password: "user", Role: domain.RoleUser}, "regular-user")
+
+	return nil
 }
 
 func (s *PostgresStore) Login(ctx context.Context, credentials domain.LoginCredentials) (domain.AuthSession, error) {

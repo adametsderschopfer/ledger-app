@@ -1,4 +1,6 @@
 /AGENTS.md
+/.env
+/.playwright-cli/
 backend/.docker/
 backend/.idea/
 frontend/dist/

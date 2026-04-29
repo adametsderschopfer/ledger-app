@@ -22,6 +22,12 @@ The backend is split into small services behind an API gateway:
 From the repository root:
 
 ```bash
+cp .env.example .env
+```
+
+Edit `.env`, then start the stack:
+
+```bash
 docker compose up --build -d
 ```
 
@@ -33,18 +39,18 @@ Gateway health:
 curl http://localhost:8080/health
 ```
 
-PostgreSQL is exposed on `localhost:5433` and persists data in the `ledger-postgres` Docker volume.
+In the default development compose file, PostgreSQL is exposed on `localhost:5433` and persists data in the `ledger-postgres` Docker volume. In `docker-compose.prod.yml`, PostgreSQL is private to the Docker network.
 
 ## Default Accounts
 
-Default accounts are created on startup:
+Default accounts are created on startup from environment variables:
 
-- `admin@ledger.local` / `admin`
-- `user@ledger.local` / `user`
+- `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD`
+- `DEFAULT_USER_EMAIL` / `DEFAULT_USER_PASSWORD` when `DEFAULT_USER_ENABLED=true`
 
 Every newly created user receives the fixed base category list from `domain.DefaultCategories`. Those categories are intentionally not system-locked, so the user can clear them from Settings.
 
-Change the default passwords before exposing the service outside a trusted local network.
+If a default account already exists, startup keeps the existing account credentials and only ensures its default categories exist. Change example passwords in `.env` before first startup.
 
 ## Environment Variables
 
@@ -58,6 +64,13 @@ Change the default passwords before exposing the service outside a trusted local
 
 - `PORT` - HTTP port, default `8081`.
 - `DATABASE_URL` - PostgreSQL connection string, default `postgres://ledger:ledger@localhost:5433/ledger?sslmode=disable`.
+- `DEFAULT_ADMIN_NAME` - initial admin display name.
+- `DEFAULT_ADMIN_EMAIL` - initial admin email.
+- `DEFAULT_ADMIN_PASSWORD` - initial admin password.
+- `DEFAULT_USER_ENABLED` - whether to seed the regular user, default `true`.
+- `DEFAULT_USER_NAME` - initial regular user display name.
+- `DEFAULT_USER_EMAIL` - initial regular user email.
+- `DEFAULT_USER_PASSWORD` - initial regular user password.
 
 `ledger-service`:
 

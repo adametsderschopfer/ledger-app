@@ -60,7 +60,7 @@ npm run ng -- --help
 
 The root `docker-compose.yml` builds this app with `frontend/Dockerfile`, serves the production bundle with nginx, and proxies `/api/*` to `api-gateway`.
 
-When started through Docker Compose, the frontend is available at `http://localhost:3000`.
+When started through Docker Compose, the frontend is available at `http://localhost:3000` by default. Set `FRONTEND_HOST_PORT` in `.env` to change the host port.
 
 Build the frontend image manually from the repository root:
 

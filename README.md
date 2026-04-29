@@ -7,6 +7,8 @@ Ledger is a self-hosted personal finance service with an Angular frontend, Go ba
 - `frontend` - Angular and Angular Material web application.
 - `backend` - Go services for authentication, ledger data, and API gateway routing.
 - `docker-compose.yml` - Full local self-hosted stack.
+- `docker-compose.prod.yml` - Production-oriented stack without a public PostgreSQL port.
+- `.env.example` - Template for local secrets and ports.
 - `LICENSE` - MIT License for the repository.
 
 ## Services
@@ -24,6 +26,14 @@ The Docker Compose stack runs:
 Prerequisites:
 
 - Docker and Docker Compose.
+
+Create your local environment file:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and replace the default passwords before starting the stack.
 
 Start the full service:
 
@@ -43,12 +53,12 @@ Check the API gateway:
 curl http://localhost:8080/health
 ```
 
-Default accounts:
+Default accounts are created from `.env`:
 
-- `admin@ledger.local` / `admin`
-- `user@ledger.local` / `user`
+- `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD`
+- `DEFAULT_USER_EMAIL` / `DEFAULT_USER_PASSWORD` when `DEFAULT_USER_ENABLED=true`
 
-Change these defaults before exposing the service outside a trusted local network.
+If default users already exist in the database, startup keeps the existing accounts and only ensures their default categories exist.
 
 ## Development
 
@@ -77,11 +87,27 @@ Run only the backend stack from the repository root:
 docker compose up --build postgres auth-service ledger-service api-gateway
 ```
 
+## Production Compose
+
+For a production-oriented baseline, use:
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+The production compose file:
+
+- exposes only the `frontend` service;
+- keeps PostgreSQL private to the Docker network;
+- keeps `api-gateway`, `auth-service`, and `ledger-service` internal;
+- uses `restart: unless-stopped`;
+- uses the same `.env` file for credentials and initial users.
+
 ## Production Notes
 
-This compose file is a practical self-hosted baseline. Before production use:
+Before production use:
 
-- Replace default credentials.
+- Replace all example credentials in `.env`.
 - Put the frontend behind HTTPS.
 - Restrict direct PostgreSQL access to trusted networks.
 - Configure backups for the `ledger-postgres` Docker volume.
